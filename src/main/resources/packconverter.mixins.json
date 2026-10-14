@@ -1,0 +1,26 @@
+{
+	"required": true,
+	"package": "dev.packconverter.mixin",
+	"compatibilityLevel": "JAVA_25",
+	"client": [
+		"FileResourcesSupplierAccessor",
+		"PackMixin",
+		"PackRepositoryMixin",
+		"FolderRepositorySourceAccessor",
+		"FolderRepositorySourceMixin",
+		"PackAccessor",
+		"GuiGraphicsExtractorInvoker",
+		"LoadingOverlayMixin",
+		"OptionsMixin",
+		"PackSelectionScreenMixin",
+		"PathResourcesSupplierAccessor",
+		"PauseScreenMixin",
+		"ReloadableResourceManagerMixin",
+		"ScreenMixin",
+		"StitcherMixin",
+		"TransferableSelectionListMixin"
+	],
+	"injectors": {
+		"defaultRequire": 1
+	}
+}

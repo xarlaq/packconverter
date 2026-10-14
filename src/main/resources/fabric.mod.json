@@ -1,0 +1,37 @@
+{
+	"schemaVersion": 1,
+	"id": "packconverter",
+	"version": "${version}",
+	"name": "Pack Converter",
+	"description": "Use resource packs made for any older Minecraft version (1.7 to 26.2) on 26.3: converted when applied, cached, and saved as normal packs on request. With pack folders, in-game pack previews, netherite from diamond and faster pack switching.",
+	"authors": [
+		"xarlaq"
+	],
+	"license": "GPL-3.0-only",
+	"icon": "assets/packconverter/icon.png",
+	"environment": "client",
+	"entrypoints": {
+		"client": [
+			"dev.packconverter.PackConverterClient"
+		],
+		"modmenu": [
+			"dev.packconverter.mc.ui.ModMenuIntegration"
+		]
+	},
+	"accessWidener": "packconverter.classtweaker",
+	"mixins": [
+		{
+			"config": "packconverter.mixins.json",
+			"environment": "client"
+		}
+	],
+	"depends": {
+		"fabricloader": ">=0.19.5",
+		"minecraft": "~26.3",
+		"java": ">=25",
+		"fabric-api": "*"
+	},
+	"suggests": {
+		"modmenu": "*"
+	}
+}
