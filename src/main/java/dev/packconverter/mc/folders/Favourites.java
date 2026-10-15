@@ -15,7 +15,7 @@ public final class Favourites {
 	}
 
 	public static boolean enabled() {
-		return !Lunar.detected();
+		return !Lunar.detected() && PackConverterConfig.get().favourites;
 	}
 
 	public static boolean is(String packId) {

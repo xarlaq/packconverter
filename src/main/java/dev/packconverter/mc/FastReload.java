@@ -4,6 +4,9 @@ import dev.packconverter.PackConverterClient;
 import dev.packconverter.PackConverterConfig;
 import net.minecraft.client.gui.font.FontManager;
 import net.minecraft.client.renderer.ShaderManager;
+import net.minecraft.client.resources.language.LanguageManager;
+import net.minecraft.client.sounds.SoundManager;
+import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
@@ -18,13 +21,15 @@ import java.util.Set;
 
 /**
  * Faster pack switching (a setting, on by default). Switching packs in the pack screen reloads every resource; the
- * shaders (compiled again each time: seconds of work) and fonts only change if a pack that was added, removed or
- * moved has any. When none has, those two keep what they have. F3+T and every other reload still reload
- * everything. The loading screen's fade is shortened too ({@code LoadingOverlayMixin}).
+ * shaders (compiled again each time: seconds of work), fonts, sounds and languages only change if a pack that was
+ * added, removed or moved has any. When none has, those keep what they have (sounds keep playing, too). The pack
+ * list isn't read again either ({@code MinecraftMixin}). F3+T and every other reload still reload everything. The
+ * loading screen stays out of the way ({@code LoadingOverlayMixin}), and atlases are put together in the background
+ * ({@link AtlasUpload}).
  */
 public final class FastReload {
 	/** What a pack has that the skippable listeners read. */
-	private record Contents(boolean shaders, boolean fonts) {
+	private record Contents(boolean shaders, boolean fonts, boolean sounds, boolean languages) {
 	}
 
 	private static boolean packSwitch;
@@ -52,6 +57,11 @@ public final class FastReload {
 		return PackConverterConfig.get().fastReload;
 	}
 
+	/** A pack switch from the pack screen is starting, and fast switching is on. */
+	public static boolean fastSwitch() {
+		return packSwitch && enabled();
+	}
+
 	/** The listeners a reload of these packs needs (render thread, as the reload starts). */
 	public static List<PreparableReloadListener> listeners(List<PreparableReloadListener> all, List<PackResources> packs) {
 		List<String> ids = packs.stream().map(PackResources::packId).toList();
@@ -66,18 +76,22 @@ public final class FastReload {
 		for (PackResources pack : packs) {
 			if (changed.contains(pack.packId())) KNOWN.computeIfAbsent(pack.packId(), id -> contents(pack));
 		}
-		boolean shaders = false, fonts = false;
+		boolean shaders = false, fonts = false, sounds = false, languages = false;
 		for (String id : changed) {
 			Contents c = KNOWN.get(id);
 			if (c == null) return all; // a built-in pack went away unread: reload everything
 			shaders |= c.shaders();
 			fonts |= c.fonts();
+			sounds |= c.sounds();
+			languages |= c.languages();
 		}
 		List<PreparableReloadListener> needed = new ArrayList<>(all.size());
 		List<String> left = new ArrayList<>();
 		for (PreparableReloadListener listener : all) {
 			if (!shaders && listener instanceof ShaderManager) left.add("shaders");
 			else if (!fonts && listener instanceof FontManager) left.add("fonts");
+			else if (!sounds && listener instanceof SoundManager) left.add("sounds");
+			else if (!languages && listener instanceof LanguageManager) left.add("languages");
 			else needed.add(listener);
 		}
 		skipped = String.join(", ", left);
@@ -106,18 +120,21 @@ public final class FastReload {
 	}
 
 	private static Contents contents(PackResources pack) {
-		boolean[] shaders = {false}, fonts = {false};
+		boolean[] shaders = {false}, fonts = {false}, sounds = {false}, languages = {false};
 		try {
 			for (String ns : pack.getNamespaces(PackType.CLIENT_RESOURCES)) {
 				pack.listResources(PackType.CLIENT_RESOURCES, ns, "shaders", (id, resource) -> shaders[0] = true);
 				pack.listResources(PackType.CLIENT_RESOURCES, ns, "post_effect", (id, resource) -> shaders[0] = true);
 				pack.listResources(PackType.CLIENT_RESOURCES, ns, "font", (id, resource) -> fonts[0] = true);
 				pack.listResources(PackType.CLIENT_RESOURCES, ns, "textures/font", (id, resource) -> fonts[0] = true);
+				pack.listResources(PackType.CLIENT_RESOURCES, ns, "sounds", (id, resource) -> sounds[0] = true);
+				if (pack.getResource(PackType.CLIENT_RESOURCES, Identifier.fromNamespaceAndPath(ns, "sounds.json")) != null) sounds[0] = true;
+				pack.listResources(PackType.CLIENT_RESOURCES, ns, "lang", (id, resource) -> languages[0] = true);
 			}
 		} catch (RuntimeException e) {
 			PackConverterClient.LOGGER.debug("Could not list {}", pack.packId(), e);
-			return new Contents(true, true);
+			return new Contents(true, true, true, true);
 		}
-		return new Contents(shaders[0], fonts[0]);
+		return new Contents(shaders[0], fonts[0], sounds[0], languages[0]);
 	}
 }

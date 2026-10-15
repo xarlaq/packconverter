@@ -136,7 +136,7 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		if (child instanceof Button button && button.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals("gui.done")
 			&& this.packconverter$isResourcePacks() && !Lunar.detected()) {
 			this.packconverter$convert = row.addChild(MenuButtons.create(this));
-			this.packconverter$random = row.addChild(RandomPack.button(this));
+			if (RandomPack.enabled()) this.packconverter$random = row.addChild(RandomPack.button(this));
 		}
 		return original.call(row, child);
 	}

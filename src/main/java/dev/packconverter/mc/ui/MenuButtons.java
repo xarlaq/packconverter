@@ -59,10 +59,15 @@ public final class MenuButtons {
 	private static void addBesideOpenFolder(Screen screen, ResourcePackScreen packs) {
 		List<AbstractWidget> widgets = Screens.getWidgets(screen);
 		SpriteIconButton convert = packs.packconverter$button() != null ? packs.packconverter$button() : create(screen);
-		SpriteIconButton random = packs.packconverter$randomButton() != null ? packs.packconverter$randomButton() : RandomPack.button(screen);
 		packs.packconverter$setButton(convert);
-		packs.packconverter$setRandomButton(random);
-		List<SpriteIconButton> ours = List.of(convert, random);
+		List<SpriteIconButton> ours = new ArrayList<>(List.of(convert));
+		if (RandomPack.enabled()) {
+			SpriteIconButton random = packs.packconverter$randomButton() != null ? packs.packconverter$randomButton() : RandomPack.button(screen);
+			packs.packconverter$setRandomButton(random);
+			ours.add(random);
+		} else if (packs.packconverter$randomButton() != null) {
+			widgets.remove(packs.packconverter$randomButton()); // switched off since
+		}
 		widgets.removeAll(ours);
 		widgets.addAll(ours);
 		placeOnLunar(screen, ours);

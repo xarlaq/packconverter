@@ -2,6 +2,7 @@ package dev.packconverter.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import dev.packconverter.mc.FastReload;
+import dev.packconverter.mc.FrameSplit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
@@ -12,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.List;
 
-/** Pack switches leave out the listeners whose resources didn't change ({@link FastReload}). */
+/** Pack switches leave out the listeners whose resources didn't change ({@link FastReload}), and apply over a few frames ({@link FrameSplit}). */
 @Mixin(ReloadableResourceManager.class)
 public abstract class ReloadableResourceManagerMixin {
 	@ModifyArg(method = "createReload", index = 1, at = @At(value = "INVOKE",
@@ -21,6 +22,7 @@ public abstract class ReloadableResourceManagerMixin {
 		@Local(argsOnly = true) List<PackResources> packs) {
 		// the game's own resources only (not an integrated server's data)
 		if ((Object) this != Minecraft.getInstance().getResourceManager()) return listeners;
-		return FastReload.listeners(listeners, packs);
+		List<PreparableReloadListener> needed = FastReload.listeners(listeners, packs);
+		return FastReload.fastSwitch() ? FrameSplit.split(needed) : needed;
 	}
 }

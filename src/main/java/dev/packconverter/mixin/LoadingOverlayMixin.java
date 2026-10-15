@@ -1,6 +1,7 @@
 package dev.packconverter.mixin;
 
 import dev.packconverter.PackConverterClient;
+import dev.packconverter.PackConverterConfig;
 import dev.packconverter.mc.FastReload;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
@@ -20,10 +21,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 /**
  * With fast pack switching on, reloads in game (not the one at startup) don't cover the screen: vanilla keeps
  * drawing the world under its loading screen anyway, and builds the new resources in the background while the old
- * ones stay in use, swapping them in at the end. So the screen stays as it is, with a thin progress bar, until the
- * swap; then the overlay goes at once (vanilla keeps it up at least a second and fades it over two more, during
- * which the game can't be used). Not with RRLS (Remove Reloading Screen), which does the same its own way. Also
- * logs how long the reload took.
+ * ones stay in use, swapping them in at the end. So the screen stays as it is (with a thin progress bar, unless
+ * that's hidden in the settings) until the swap; then the overlay goes at once (vanilla keeps it up at least a
+ * second and fades it over two more, during which the game can't be used). Not with RRLS (Remove Reloading Screen),
+ * which does the same its own way. Also logs how long the reload took.
  */
 @Mixin(LoadingOverlay.class)
 public abstract class LoadingOverlayMixin {
@@ -39,7 +40,7 @@ public abstract class LoadingOverlayMixin {
 	@Shadow
 	private long fadeOutStart;
 	@Unique
-	private final long packconverter$start = Util.getMillis();
+	private long packconverter$start;
 	@Unique
 	private float packconverter$progress;
 	@Unique
@@ -55,6 +56,11 @@ public abstract class LoadingOverlayMixin {
 	@Unique
 	private boolean packconverter$seamless() {
 		return this.fadeIn && FastReload.enabled() && !PACKCONVERTER$RRLS;
+	}
+
+	@Inject(method = "<init>", at = @At("TAIL"))
+	private void packconverter$started(CallbackInfo ci) {
+		this.packconverter$start = Util.getMillis();
 	}
 
 	@Inject(method = "isReadyToFadeOut", at = @At("HEAD"), cancellable = true)
@@ -80,6 +86,7 @@ public abstract class LoadingOverlayMixin {
 				PackConverterClient.LOGGER.warn("Could not draw the screen during a reload, showing only the progress", e);
 			}
 		}
+		if (PackConverterConfig.get().hideLoadingBar && !this.packconverter$noScreen) return;
 		graphics.nextStratum();
 		this.packconverter$progress = Math.max(this.packconverter$progress, this.reload.getActualProgress());
 		int width = 120, x0 = graphics.guiWidth() / 2 - width / 2, y = graphics.guiHeight() - 6;

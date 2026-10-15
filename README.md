@@ -21,7 +21,7 @@ Your original packs stay untouched, packs made for 26.3 are never converted, and
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
 | **Random pack** | The die button swaps in a random pack; right-click it to set a key for it (also in Controls). |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
-| **Fast pack switching** | No loading screen when switching packs, with pack switching up to 2–4x faster. |
+| **Fast pack switching** | No loading screen and no long freeze when switching packs: up to 2–4x faster. |
 
 <details>
 <summary>What gets converted</summary>
@@ -51,6 +51,9 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the Resourc
 | **Previews show** | All | Every material in turn (wood to netherite), or just one. |
 | **Make netherite** | on | Netherite from diamond, in the colour of the swatch next to it. |
 | **Fast pack switching** | on | Keeps the game on screen while packs load. |
+| **Hide loading bar** | on | No progress bar while packs switch. |
+| **Favourite packs** | on | The star on each pack. |
+| **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
 | **Cache limit** | 1 GB | Space converted packs may use; the oldest go first. |
 | **Export folder** | `resourcepacks/converted` | Where "Convert and save" puts converted packs. |
 

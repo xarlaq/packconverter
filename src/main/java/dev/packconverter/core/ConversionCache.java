@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import dev.packconverter.core.io.Json;
 import dev.packconverter.core.source.PackSource;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -154,6 +155,23 @@ public final class ConversionCache {
 	}
 
 	/** Same as {@link #get(String, Path, PackSource, PackMeta, VanillaAssets)} for packs without a known location. */
+	/**
+	 * Converts the pack now if it isn't converted yet, so that loading it later only reads the cache (for converting
+	 * ahead, off the render thread). The conversion's result if it was converted now, else null.
+	 */
+	public synchronized Converter.@Nullable Result prepare(String packName, Path location, PackSource source, PackMeta meta, VanillaAssets vanilla)
+		throws IOException {
+		String base = safeName(packName);
+		Options options = this.options.get();
+		Path file = root.resolve(base + "-" + key(source.fingerprint() + options.key()) + ".zip");
+		if (loaded.containsKey(file) || Files.isRegularFile(file)) return null;
+		Converter.Result result = Converter.convert(source, meta, vanilla, options);
+		write(file, location, result);
+		deleteStale(base, file);
+		enforceLimit();
+		return result;
+	}
+
 	public Entry get(String packName, PackSource source, PackMeta meta, VanillaAssets vanilla) throws IOException {
 		return get(packName, null, source, meta, vanilla);
 	}

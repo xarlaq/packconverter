@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -55,6 +56,13 @@ public final class LegacyPacks {
 		t.setDaemon(true);
 		return t;
 	});
+	/** Converting ahead ({@link #prepare}): one pack at a time, by file. */
+	private static final ExecutorService PREPARE = Executors.newSingleThreadExecutor(r -> {
+		Thread t = new Thread(r, "Pack Converter converting ahead");
+		t.setDaemon(true);
+		return t;
+	});
+	private static final Map<Path, CompletableFuture<Void>> PREPARING = new ConcurrentHashMap<>();
 	private static final Pattern CONVERTED_IN = Pattern.compile("in (\\d+) ms");
 	private static ConversionCache cache;
 	/** The game's own assets, straight from the client jar on the classpath. */
@@ -148,6 +156,33 @@ public final class LegacyPacks {
 		} finally {
 			if (outer) LOADING.remove();
 		}
+	}
+
+	/**
+	 * Converts an old pack now, in the background, if it hasn't been yet: applying it later then only reads the cache,
+	 * instead of converting on the render thread as the switch starts (a long freeze for a big pack). For a pack picked
+	 * at random, or moved to Selected in the pack screen. Done at once for packs that need nothing.
+	 */
+	public static CompletableFuture<Void> prepare(String packId) {
+		Info info = OLD_BY_ID.get(packId);
+		if (info == null || !PackConverterConfig.get().autoConvert) return CompletableFuture.completedFuture(null);
+		Path path = info.path();
+		CompletableFuture<Void> future = PREPARING.computeIfAbsent(path, p -> CompletableFuture.runAsync(() -> {
+			try (PackSource source = PackSource.open(p)) {
+				PackMeta meta = Converter.readMeta(source);
+				if (meta == null || !Converter.needsConversion(meta)) return;
+				Converter.Result result = cache().prepare(p.getFileName().toString(), p, source, meta, VANILLA);
+				if (result != null) {
+					DESCRIPTIONS.remove(packId);
+					PackConverterClient.LOGGER.info("Converted {} ahead (made for pack format {}) in {} ms: {}", packId, meta.format(),
+						result.nanos() / 1_000_000, result.context().counters());
+				}
+			} catch (Exception e) {
+				PackConverterClient.LOGGER.warn("Could not convert {} ahead, it will be when applied", packId, e);
+			}
+		}, PREPARE));
+		future.whenComplete((v, t) -> PREPARING.remove(path, future));
+		return future;
 	}
 
 	/** The converted pack, or null to let the game open the pack as it is. */

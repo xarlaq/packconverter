@@ -1,6 +1,9 @@
 package dev.packconverter.mc.ui;
 
 import com.mojang.blaze3d.platform.InputConstants;
+import dev.packconverter.PackConverterConfig;
+import dev.packconverter.mc.LegacyPacks;
+import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.PackFolders;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
@@ -41,10 +44,17 @@ public final class RandomPack {
 	private static final Identifier ICON = Identifier.fromNamespaceAndPath("packconverter", "icon/random");
 	private static final SystemToast.SystemToastId NOTHING_TO_PICK = new SystemToast.SystemToastId();
 	private static final Random RANDOM = new Random();
+	/** A picked pack being converted before it's applied: further picks wait. */
+	private static boolean preparing;
 	/** The button waiting for a key after a right-click, if any. */
 	private static @Nullable SpriteIconButton binding;
 
 	private RandomPack() {
+	}
+
+	/** The setting: the button on the pack screen, and the key. */
+	public static boolean enabled() {
+		return PackConverterConfig.get().randomPack;
 	}
 
 	public static void register() {
@@ -117,7 +127,8 @@ public final class RandomPack {
 			Component key = KEY.isUnbound() ? Component.translatable("packconverter.random.no_key") : KEY.getTranslatedKeyMessage();
 			text = Component.empty()
 				.append(Component.translatable("packconverter.random.button"))
-				.append("\n").append(Component.translatable("packconverter.random.info").withStyle(ChatFormatting.GRAY))
+				.append("\n").append(Component.translatable(PackConverterConfig.get().randomFavouritesOnly ? "packconverter.random.info_favourites" : "packconverter.random.info")
+					.withStyle(ChatFormatting.GRAY))
 				.append("\n").append(Component.translatable("packconverter.random.key", key))
 				.append("\n").append(Component.translatable("packconverter.random.bind_hint").withStyle(ChatFormatting.GRAY));
 		}
@@ -127,12 +138,12 @@ public final class RandomPack {
 	/** From the pack screen: a pack from the list shown, through the screen's own model (so "Done" keeps it). */
 	private static void applyShown(Screen screen) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (minecraft.gui.overlay() != null || !(screen instanceof ResourcePackScreen packs)) return; // still loading the last one
+		if (minecraft.gui.overlay() != null || preparing || !(screen instanceof ResourcePackScreen packs)) return; // still on the last one
 		PackSelectionModel model = packs.packconverter$model();
 		String search = packs.packconverter$search().toLowerCase(Locale.ROOT);
 		String folder = PackFolders.enabled() ? PackFolders.current() : "";
 		List<PackSelectionModel.Entry> pool = model.getUnselected()
-			.filter(e -> fromFolder(e.getId()) && shown(e, folder, search))
+			.filter(e -> fromFolder(e.getId()) && allowed(e.getId()) && shown(e, folder, search))
 			.toList();
 		if (pool.isEmpty()) {
 			nothingToPick(minecraft);
@@ -143,8 +154,13 @@ public final class RandomPack {
 			if (fromFolder(e.getId()) && e.canUnselect()) e.unselect();
 		}
 		pick.select();
-		// the model has set the repository's selection; apply it with the screen still open
-		minecraft.options.updateResourcePacks(minecraft.getResourcePackRepository());
+		// the model has set the repository's selection: apply it with the screen still open, once the pack is converted
+		// (if "Done" comes first, that applies it)
+		preparing = true;
+		LegacyPacks.prepare(pick.getId()).whenComplete((v, t) -> minecraft.execute(() -> {
+			preparing = false;
+			minecraft.options.updateResourcePacks(minecraft.getResourcePackRepository());
+		}));
 	}
 
 	/** In the list shown: matching the search (as the screen does), or else in the folder open (or below it). */
@@ -158,22 +174,41 @@ public final class RandomPack {
 		return folder.isEmpty() || in.equals(folder) || in.startsWith(folder + "/");
 	}
 
-	/** With the key, in game: any pack (from the last time the packs were listed). */
+	/**
+	 * With the key, in game: any pack (from the last time the packs were listed). Its name shows at once; it's applied
+	 * once it's converted, in the background if it never was.
+	 */
 	private static void applyAny(Minecraft minecraft) {
-		if (minecraft.gui.overlay() != null) return;
+		if (!enabled() || minecraft.gui.overlay() != null || preparing) return;
 		PackRepository repository = minecraft.getResourcePackRepository();
-		List<Pack> selected = new ArrayList<>(repository.getSelectedPacks());
-		List<Pack> pool = repository.getAvailablePacks().stream().filter(p -> fromFolder(p.getId()) && !selected.contains(p)).toList();
+		List<Pack> pool = repository.getAvailablePacks().stream()
+			.filter(p -> fromFolder(p.getId()) && allowed(p.getId()) && !repository.getSelectedPacks().contains(p)).toList();
 		if (pool.isEmpty()) {
 			nothingToPick(minecraft);
 			return;
 		}
 		Pack pick = pool.get(RANDOM.nextInt(pool.size()));
+		if (minecraft.player != null) minecraft.player.sendOverlayMessage(Component.translatable("packconverter.random.applied", pick.getTitle()));
+		preparing = true;
+		LegacyPacks.prepare(pick.getId()).whenComplete((v, t) -> minecraft.execute(() -> {
+			preparing = false;
+			switchTo(minecraft, pick);
+		}));
+	}
+
+	/** The packs from the folder swapped for this one, applied. */
+	private static void switchTo(Minecraft minecraft, Pack pick) {
+		PackRepository repository = minecraft.getResourcePackRepository();
+		List<Pack> selected = new ArrayList<>(repository.getSelectedPacks());
 		selected.removeIf(p -> fromFolder(p.getId()) && !p.isRequired());
 		pick.getDefaultPosition().insert(selected, pick, Pack::selectionConfig, false);
 		repository.setSelected(selected.stream().map(Pack::getId).toList());
 		minecraft.options.updateResourcePacks(repository);
-		if (minecraft.player != null) minecraft.player.sendOverlayMessage(Component.translatable("packconverter.random.applied", pick.getTitle()));
+	}
+
+	/** A pack the setting lets it pick: any, or only favourites. */
+	private static boolean allowed(String packId) {
+		return !PackConverterConfig.get().randomFavouritesOnly || Favourites.enabled() && Favourites.is(packId);
 	}
 
 	/** A pack from the resourcepacks folder (or a folder in it), not a built-in one. */

@@ -33,6 +33,14 @@ public final class PackConverterConfig {
 	public String previewMaterial = "all";
 	/** Pack switches keep shaders and fonts when no changed pack has any, and the loading screen goes quicker. */
 	public boolean fastReload = true;
+	/** Pack switches show no progress bar at the bottom of the screen (with {@link #fastReload}). */
+	public boolean hideLoadingBar = true;
+	/** A star on each pack in the pack screen; starred packs come first. */
+	public boolean favourites = true;
+	/** The random pack button on the pack screen, and its key. */
+	public boolean randomPack = true;
+	/** The random pack picks only from favourite packs. */
+	public boolean randomFavouritesOnly = false;
 	/** Disk space the conversion cache may use; the conversions used longest ago go first. */
 	public int cacheLimitMb = 1024;
 	/** Where "Convert and save" writes standalone converted packs (relative to the game folder, or absolute). */

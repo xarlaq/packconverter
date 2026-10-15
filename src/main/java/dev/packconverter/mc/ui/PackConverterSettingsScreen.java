@@ -20,6 +20,7 @@ import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 /**
  * Settings: automatic conversion, pack folders, previews (and which material they show), netherite from diamond (and
@@ -27,7 +28,7 @@ import java.nio.file.Path;
  */
 public final class PackConverterSettingsScreen extends Screen {
 	/** What the pack previews can show: every material in turn, or one (see PackPreview). */
-	private static final java.util.List<String> MATERIALS = java.util.List.of("all", "wood", "stone", "copper", "iron", "gold", "diamond", "netherite");
+	private static final List<String> MATERIALS = List.of("all", "wood", "stone", "copper", "iron", "gold", "diamond", "netherite");
 	private final Screen parent;
 	private final PackConverterConfig config = PackConverterConfig.get();
 	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
@@ -43,13 +44,13 @@ public final class PackConverterSettingsScreen extends Screen {
 	@Override
 	protected void init() {
 		this.layout.addTitleHeader(this.title, this.font);
-		LinearLayout column = this.layout.addToContents(LinearLayout.vertical().spacing(6));
+		LinearLayout column = this.layout.addToContents(LinearLayout.vertical().spacing(4));
 		column.defaultCellSetting().alignHorizontallyCenter();
 
 		// the switches two by two
-		LinearLayout switches = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(6));
-		LinearLayout leftSwitches = switches.addChild(LinearLayout.vertical().spacing(6));
-		LinearLayout rightSwitches = switches.addChild(LinearLayout.vertical().spacing(6));
+		LinearLayout switches = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(4));
+		LinearLayout leftSwitches = switches.addChild(LinearLayout.vertical().spacing(4));
+		LinearLayout rightSwitches = switches.addChild(LinearLayout.vertical().spacing(4));
 		leftSwitches.addChild(CycleButton.onOffBuilder(this.config.autoConvert)
 			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.auto.tooltip")))
 			.create(Component.translatable("packconverter.settings.auto"), (button, value) -> this.config.autoConvert = value));
@@ -86,6 +87,28 @@ public final class PackConverterSettingsScreen extends Screen {
 		leftSwitches.addChild(CycleButton.onOffBuilder(this.config.fastReload)
 			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.fast_reload.tooltip")))
 			.create(Component.translatable("packconverter.settings.fast_reload"), (button, value) -> this.config.fastReload = value));
+		leftSwitches.addChild(CycleButton.onOffBuilder(this.config.hideLoadingBar)
+			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.loading_bar.tooltip")))
+			.create(Component.translatable("packconverter.settings.loading_bar"), (button, value) -> this.config.hideLoadingBar = value));
+		// Lunar Client draws the pack rows itself: no stars there, the switch locked off
+		CycleButton<Boolean> favourites = CycleButton.onOffBuilder(!lunar && this.config.favourites)
+			.withTooltip(value -> Tooltip.create(Component.translatable(lunar ? "packconverter.settings.favourites.lunar" : "packconverter.settings.favourites.tooltip")))
+			.create(Component.translatable("packconverter.settings.favourites"), (button, value) -> {
+				if (!lunar) this.config.favourites = value;
+			});
+		favourites.active = !lunar;
+		rightSwitches.addChild(favourites);
+		// random pack: from all packs, only favourites (not on Lunar: no stars there), or off
+		List<String> randoms = lunar ? List.of("all", "off") : List.of("all", "favourites", "off");
+		String random = !this.config.randomPack ? "off" : this.config.randomFavouritesOnly && !lunar ? "favourites" : "all";
+		rightSwitches.addChild(CycleButton.builder((String value) -> value.equals("off") ? CommonComponents.OPTION_OFF
+				: Component.translatable("packconverter.settings.random." + value), random)
+			.withValues(randoms)
+			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.random.tooltip")))
+			.create(Component.translatable("packconverter.settings.random"), (button, value) -> {
+				this.config.randomPack = !value.equals("off");
+				this.config.randomFavouritesOnly = value.equals("favourites");
+			}));
 
 		// labels beside their boxes, so all of it fits at GUI height 240
 		LinearLayout limitRow = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(4));
