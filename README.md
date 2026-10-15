@@ -51,7 +51,7 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title s
 | **Pack previews** | on | The preview when hovering a pack. |
 | **Previews show** | All | Every material in turn (wood to netherite), or just one. |
 | **Make netherite** | on | Netherite from diamond, in the colour of the swatch next to it. |
-| **Fast pack switching** | on | Keeps the game on screen while packs load, with no freeze when they go in. |
+| **Fast pack switching** | on | Keeps the game on screen while packs load, with no long freeze when they go in. |
 | **Hide loading bar** | on | No progress bar while packs switch (RRLS's too). |
 | **Favourite packs** | on | The star on each pack. |
 | **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
