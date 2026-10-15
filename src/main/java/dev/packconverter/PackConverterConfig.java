@@ -9,6 +9,8 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.List;
 
 /** Settings, stored in config/packconverter.json. */
 public final class PackConverterConfig {
@@ -35,6 +37,8 @@ public final class PackConverterConfig {
 	public int cacheLimitMb = 1024;
 	/** Where "Convert and save" writes standalone converted packs (relative to the game folder, or absolute). */
 	public String exportFolder = "resourcepacks/converted";
+	/** Packs starred in the resource pack screen (pack ids): listed first. */
+	public List<String> favouritePacks = new ArrayList<>();
 
 	public static synchronized PackConverterConfig get() {
 		if (instance == null) instance = load();
@@ -73,7 +77,10 @@ public final class PackConverterConfig {
 		if (Files.isRegularFile(file)) {
 			try {
 				PackConverterConfig config = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), PackConverterConfig.class);
-				if (config != null) return config;
+				if (config != null) {
+					if (config.favouritePacks == null) config.favouritePacks = new ArrayList<>();
+					return config;
+				}
 			} catch (IOException | RuntimeException e) {
 				PackConverterClient.LOGGER.warn("Could not read {}, using defaults", file, e);
 			}

@@ -88,5 +88,18 @@
 	"packconverter.settings.export.tooltip": "Gdzie \"Konwertuj i zapisz\" zapisuje paczki: folder w folderze gry albo pełna ścieżka.",
 	"packconverter.settings.fast_reload": "Szybka zmiana paczek",
 	"packconverter.settings.fast_reload.tooltip": "Zmiana paczek nie zasłania gry ekranem ładowania: menu zostaje na ekranie, a nowe paczki wczytują się w tle. Shadery i czcionki zostają, jeśli zmienione paczki ich nie mają. F3+T nadal wczytuje wszystko od nowa.",
-	"packconverter.settings.open": "Otwórz"
+	"packconverter.settings.open": "Otwórz",
+	"key.category.packconverter.main": "Pack Converter",
+	"key.packconverter.random_pack": "Losowa paczka",
+	"packconverter.random.button": "Losowa paczka",
+	"packconverter.random.info": "Zamienia twoje paczki na losową z listy.",
+	"packconverter.random.key": "Klawisz: %s",
+	"packconverter.random.no_key": "brak",
+	"packconverter.random.bind_hint": "Prawy przycisk myszy: ustaw klawisz",
+	"packconverter.random.binding": "Naciśnij klawisz lub przycisk myszy (Esc: brak)",
+	"packconverter.random.applied": "Losowa paczka: %s",
+	"packconverter.random.none_title": "Brak paczek do wyboru",
+	"packconverter.random.none": "Nie ma innych paczek do wylosowania.",
+	"packconverter.favourite.add": "Dodaj do ulubionych",
+	"packconverter.favourite.remove": "Usuń z ulubionych"
 }

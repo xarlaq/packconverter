@@ -3,6 +3,7 @@ package dev.packconverter;
 import dev.packconverter.mc.LegacyPacks;
 import dev.packconverter.mc.preview.PackPreviews;
 import dev.packconverter.mc.ui.MenuButtons;
+import dev.packconverter.mc.ui.RandomPack;
 import net.fabricmc.api.ClientModInitializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +15,7 @@ public class PackConverterClient implements ClientModInitializer {
 	public void onInitializeClient() {
 		PackConverterConfig.get();
 		MenuButtons.register();
+		RandomPack.register();
 		PackPreviews.register();
 		// tidy the cache (conversions of deleted packs, size limit) without holding up startup
 		Thread cleanup = new Thread(() -> {

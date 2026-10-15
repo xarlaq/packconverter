@@ -88,5 +88,18 @@
 	"packconverter.settings.export.tooltip": "Where \"Convert and save\" puts converted packs: a folder in the game folder, or a full path.",
 	"packconverter.settings.fast_reload": "Fast pack switching",
 	"packconverter.settings.fast_reload.tooltip": "Switching packs doesn't cover the game with the loading screen: the menu stays on screen while the new packs load in the background. Shaders and fonts are kept when the packs you changed have none. F3+T still reloads everything.",
-	"packconverter.settings.open": "Open"
+	"packconverter.settings.open": "Open",
+	"key.category.packconverter.main": "Pack Converter",
+	"key.packconverter.random_pack": "Random pack",
+	"packconverter.random.button": "Random pack",
+	"packconverter.random.info": "Swaps your packs for a random one from the list.",
+	"packconverter.random.key": "Key: %s",
+	"packconverter.random.no_key": "none",
+	"packconverter.random.bind_hint": "Right-click to set a key",
+	"packconverter.random.binding": "Press a key or mouse button (Esc: no key)",
+	"packconverter.random.applied": "Random pack: %s",
+	"packconverter.random.none_title": "No pack to pick",
+	"packconverter.random.none": "There are no other packs to choose from.",
+	"packconverter.favourite.add": "Add to favourites",
+	"packconverter.favourite.remove": "Remove from favourites"
 }

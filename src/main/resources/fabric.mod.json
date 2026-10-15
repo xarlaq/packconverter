@@ -3,7 +3,7 @@
 	"id": "packconverter",
 	"version": "${version}",
 	"name": "Pack Converter",
-	"description": "Use resource packs made for any older Minecraft version (1.7 to 26.2) on 26.3: converted when applied, cached, and saved as normal packs on request. With pack folders, in-game pack previews, netherite from diamond and faster pack switching.",
+	"description": "Old resource packs on 26.3, with close to instant pack loads, pack folders and pack previews",
 	"authors": [
 		"xarlaq"
 	],

@@ -4,15 +4,18 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import dev.packconverter.mc.Lunar;
+import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.FolderEntry;
 import dev.packconverter.mc.folders.FolderRows;
 import dev.packconverter.mc.folders.PackFolders;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import dev.packconverter.mc.preview.PackTooltip;
 import dev.packconverter.mc.ui.MenuButtons;
+import dev.packconverter.mc.ui.RandomPack;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.layouts.LinearLayout;
@@ -39,8 +42,8 @@ import java.util.stream.Stream;
 /**
  * Folders in the resource pack screen ({@link PackFolders}): the Available list shows the current folder's packs
  * under rows for its subfolders (and one going back); a search looks through every folder. "Open Pack Folder" and
- * packs dropped on the screen use the folder shown. The Pack Converter button sits between "Open Pack Folder" and "Done". Not for
- * data packs (same screen, other directory).
+ * packs dropped on the screen use the folder shown. Favourite packs go first ({@link Favourites}). The Pack Converter
+ * and random pack buttons sit between "Open Pack Folder" and "Done". Not for data packs (same screen, other directory).
  */
 @Mixin(PackSelectionScreen.class)
 public abstract class PackSelectionScreenMixin extends Screen implements ResourcePackScreen {
@@ -54,8 +57,12 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 	private @Nullable TransferableSelectionList availablePackList;
 	@Shadow
 	private @Nullable TransferableSelectionList selectedPackList;
+	@Shadow
+	private @Nullable EditBox search;
 	@Unique
 	private @Nullable SpriteIconButton packconverter$convert;
+	@Unique
+	private @Nullable SpriteIconButton packconverter$random;
 
 	@Shadow
 	protected abstract void populateLists(PackSelectionModel.@Nullable EntryBase transferredEntry);
@@ -75,6 +82,31 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 	}
 
 	@Override
+	public @Nullable SpriteIconButton packconverter$randomButton() {
+		return this.packconverter$random;
+	}
+
+	@Override
+	public void packconverter$setRandomButton(SpriteIconButton button) {
+		this.packconverter$random = button;
+	}
+
+	@Override
+	public PackSelectionModel packconverter$model() {
+		return this.model;
+	}
+
+	@Override
+	public String packconverter$search() {
+		return this.search == null ? "" : this.search.getValue();
+	}
+
+	@Override
+	public void packconverter$refreshLists() {
+		this.populateLists(null);
+	}
+
+	@Override
 	public void packconverter$packTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		if (this.packconverter$isResourcePacks()) PackTooltip.extract(graphics, mouseX, mouseY, this.model, this.availablePackList, this.selectedPackList);
 	}
@@ -89,9 +121,14 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		return PackFolders.enabled() && this.packconverter$isResourcePacks();
 	}
 
+	@Unique
+	private boolean packconverter$favourites() {
+		return Favourites.enabled() && this.packconverter$isResourcePacks();
+	}
+
 	/**
-	 * The Pack Converter button joins the footer row, between "Open Pack Folder" and "Done": the screen's layout
-	 * places it (and again on resize). Lunar builds that row its own way ({@link MenuButtons}).
+	 * The Pack Converter and random pack buttons join the footer row, between "Open Pack Folder" and "Done": the
+	 * screen's layout places them (and again on resize). Lunar builds that row its own way ({@link MenuButtons}).
 	 */
 	@WrapOperation(method = "init", at = @At(value = "INVOKE",
 		target = "Lnet/minecraft/client/gui/layouts/LinearLayout;addChild(Lnet/minecraft/client/gui/layouts/LayoutElement;)Lnet/minecraft/client/gui/layouts/LayoutElement;"))
@@ -99,6 +136,7 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		if (child instanceof Button button && button.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals("gui.done")
 			&& this.packconverter$isResourcePacks() && !Lunar.detected()) {
 			this.packconverter$convert = row.addChild(MenuButtons.create(this));
+			this.packconverter$random = row.addChild(RandomPack.button(this));
 		}
 		return original.call(row, child);
 	}
@@ -107,11 +145,13 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		target = "Lnet/minecraft/client/gui/screens/packs/TransferableSelectionList;updateList(Ljava/util/stream/Stream;Lnet/minecraft/client/gui/screens/packs/PackSelectionModel$EntryBase;)V"))
 	private void packconverter$folderView(TransferableSelectionList list, Stream<PackSelectionModel.Entry> entries,
 		PackSelectionModel.@Nullable EntryBase transferred, Operation<Void> original, @Local(argsOnly = true) String search) {
+		FolderRows rows = (FolderRows) list;
+		boolean favourites = this.packconverter$favourites();
+		rows.packconverter$setFavourites(favourites, favourites && list == this.availablePackList);
 		if (list != this.availablePackList || !this.packconverter$folders()) {
 			original.call(list, entries, transferred);
 			return;
 		}
-		FolderRows rows = (FolderRows) list;
 		if (!search.isBlank()) {
 			// a search looks in every folder (the id it matches includes the folder)
 			rows.packconverter$showFolder(null, List.of(), this::packconverter$open);
@@ -129,7 +169,9 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		PackFolders.subfolders(folder, ids.stream()).forEach((sub, count) -> folderRows.add(new FolderEntry.Row(sub, false, count)));
 		rows.packconverter$showFolder(folder, folderRows, this::packconverter$open);
 		String shown = folder;
-		original.call(list, entries.filter(e -> PackFolders.folderOf(e.getId()).equals(shown)), transferred);
+		// at the top, favourites from every folder too
+		original.call(list, entries.filter(e -> PackFolders.folderOf(e.getId()).equals(shown) || favourites && shown.isEmpty() && Favourites.is(e.getId())),
+			transferred);
 	}
 
 	@Unique

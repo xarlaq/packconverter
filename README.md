@@ -18,6 +18,8 @@ Your original packs stay untouched, packs made for 26.3 are never converted, and
 | **Convert and save** | Saves a converted copy as a normal 26.3 pack that works without the mod, one pack or a whole folder. |
 | **Pack previews** | Hover a pack to preview its HUD, items, blocks and armor on a 3D player before turning it on. |
 | **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them. |
+| **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
+| **Random pack** | The die button swaps in a random pack; right-click it to set a key for it (also in Controls). |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
 | **Fast pack switching** | No loading screen when switching packs, with pack switching up to 2–4x faster. |
 
