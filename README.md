@@ -4,7 +4,8 @@
 
 Use resource packs made for **any version from 1.7 to 26.2** on Minecraft 26.3, without manually updating them.
 Turn an old pack on like any other, and **pack loads become almost instant**: it’s converted once, then cached for every load after.
-Your original packs stay untouched, packs made for 26.3 are never converted, and nothing runs in the background while you play.
+Switching packs is smooth too: no loading screen and no long freeze, even for a pack you've never used.
+Your original packs stay untouched, and packs made for 26.3 are never converted.
 
 **Fabric • Minecraft 26.3 • Client-side**
 
@@ -19,9 +20,9 @@ Your original packs stay untouched, packs made for 26.3 are never converted, and
 | **Pack previews** | Hover a pack to preview its HUD, items, blocks and armor on a 3D player before turning it on. |
 | **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them. |
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
-| **Random pack** | The die button swaps in a random pack; right-click it to set a key for it (also in Controls). |
+| **Random pack** | A die button next to Done swaps in a random pack, from all packs or only favourites. Right-click it to bind a key and roll packs while playing. |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
-| **Fast pack switching** | No loading screen and no long freeze when switching packs: up to 2–4x faster. |
+| **Fast pack switching** | No loading screen and no long freeze: new packs go in over a few frames, and packs never used before are converted in the background first. |
 
 <details>
 <summary>What gets converted</summary>
@@ -41,7 +42,7 @@ Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
 ## Settings
 
-In **Mod Menu**, or **Settings** in Pack Converter (its button is on the Resource Packs screen).
+In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title screen, the pause menu and the Resource Packs screen).
 
 | Option | Default | What it does |
 | --- | --- | --- |
@@ -50,8 +51,8 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the Resourc
 | **Pack previews** | on | The preview when hovering a pack. |
 | **Previews show** | All | Every material in turn (wood to netherite), or just one. |
 | **Make netherite** | on | Netherite from diamond, in the colour of the swatch next to it. |
-| **Fast pack switching** | on | Keeps the game on screen while packs load. |
-| **Hide loading bar** | on | No progress bar while packs switch. |
+| **Fast pack switching** | on | Keeps the game on screen while packs load, with no freeze when they go in. |
+| **Hide loading bar** | on | No progress bar while packs switch (RRLS's too). |
 | **Favourite packs** | on | The star on each pack. |
 | **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
 | **Cache limit** | 1 GB | Space converted packs may use; the oldest go first. |
@@ -66,7 +67,7 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the Resourc
 3. Place Pack Converter into your `mods` folder
 4. Launch Minecraft
 
-Mod Menu is optional. Works on Lunar Client.
+Mod Menu is optional. Works on Lunar Client, and alongside Sodium, RRLS and Async Pack Scan.
 
 ---
 
@@ -88,7 +89,7 @@ The release jar is `build/libs/packconverter-<version>+26.3.jar` — ignore the 
 
 ## License
 
-Pack Converter is licensed under **GPL-3.0-only**.
+Copyright (C) 2026 xarlaq. Pack Converter is licensed under **GPL-3.0-only**.
 
 Parts are adapted from other projects, and their notices ship inside the jar:
 
