@@ -4,7 +4,7 @@
 
 Use resource packs made for **any version from 1.7 to 26.2** on Minecraft 26.3, without manually updating them.
 Turn an old pack on like any other, and **pack loads become almost instant**: it’s converted once, then cached for every load after.
-Switching packs is smooth too: no loading screen and no long freeze, even for a pack you've never used.
+Switching packs is smooth too: no loading screen and no long freeze.
 Your original packs stay untouched, and packs made for 26.3 are never converted.
 
 **Fabric • Minecraft 26.3 • Client-side**
