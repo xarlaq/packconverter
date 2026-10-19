@@ -21,6 +21,7 @@
 		"PauseScreenMixin",
 		"ReloadableResourceManagerMixin",
 		"RrlsOverlayMixin",
+		"ScreenInvoker",
 		"ScreenMixin",
 		"SpriteContentsAccessor",
 		"SpriteLoaderMixin",

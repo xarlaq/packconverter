@@ -1,9 +1,9 @@
 package dev.packconverter.mc.ui;
 
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
-import net.fabricmc.fabric.api.client.screen.v1.Screens;
 import dev.packconverter.mc.Lunar;
 import dev.packconverter.mc.folders.ResourcePackScreen;
+import dev.packconverter.mixin.ScreenInvoker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.SpriteIconButton;
@@ -57,7 +57,7 @@ public final class MenuButtons {
 	 * buttons every frame ({@link #placeOnLunar}).
 	 */
 	private static void addBesideOpenFolder(Screen screen, ResourcePackScreen packs) {
-		List<AbstractWidget> widgets = Screens.getWidgets(screen);
+		ScreenInvoker widgets = (ScreenInvoker) screen;
 		SpriteIconButton convert = packs.packconverter$button() != null ? packs.packconverter$button() : create(screen);
 		packs.packconverter$setButton(convert);
 		List<SpriteIconButton> ours = new ArrayList<>(List.of(convert));
@@ -66,10 +66,12 @@ public final class MenuButtons {
 			packs.packconverter$setRandomButton(random);
 			ours.add(random);
 		} else if (packs.packconverter$randomButton() != null) {
-			widgets.remove(packs.packconverter$randomButton()); // switched off since
+			widgets.packconverter$removeWidget(packs.packconverter$randomButton()); // switched off since
 		}
-		widgets.removeAll(ours);
-		widgets.addAll(ours);
+		for (SpriteIconButton button : ours) {
+			widgets.packconverter$removeWidget(button);
+			widgets.packconverter$addRenderableWidget(button);
+		}
 		placeOnLunar(screen, ours);
 		ScreenEvents.beforeExtract(screen).register((s, graphics, mouseX, mouseY, delta) -> placeOnLunar(s, ours));
 	}
@@ -102,9 +104,14 @@ public final class MenuButtons {
 		}
 	}
 
+	/** The screen's buttons and other widgets, read from the screen itself. */
+	private static List<AbstractWidget> widgets(Screen screen) {
+		return screen.children().stream().filter(AbstractWidget.class::isInstance).map(AbstractWidget.class::cast).toList();
+	}
+
 	private static @Nullable AbstractWidget find(Screen screen, List<? extends AbstractWidget> ours, String key) {
 		String label = Component.translatable(key).getString();
-		for (AbstractWidget w : Screens.getWidgets(screen)) {
+		for (AbstractWidget w : widgets(screen)) {
 			if (ours.contains(w)) continue;
 			if (w.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals(key) || w.getMessage().getString().equals(label)) return w;
 		}
@@ -112,7 +119,7 @@ public final class MenuButtons {
 	}
 
 	private static void addToTitleRow(Screen screen) {
-		List<AbstractWidget> widgets = Screens.getWidgets(screen);
+		List<AbstractWidget> widgets = widgets(screen);
 		if (find(screen, List.of(), "packconverter.button.open") != null) return; // shown again: already there
 		AbstractWidget language = widgets.stream()
 			.filter(w -> w.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals("options.language"))
@@ -123,7 +130,7 @@ public final class MenuButtons {
 			.sorted(Comparator.comparingInt(AbstractWidget::getX)).toList());
 		SpriteIconButton button = create(screen);
 		row.add(button);
-		widgets.add(button);
+		((ScreenInvoker) screen).packconverter$addRenderableWidget(button);
 		int x = screen.width / 2 - (row.size() * (SIZE + GAP) - GAP) / 2;
 		for (AbstractWidget w : row) {
 			w.setPosition(x, language.getY());

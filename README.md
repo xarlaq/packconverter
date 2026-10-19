@@ -33,7 +33,7 @@ Your original packs stay untouched, and packs made for 26.3 are never converted.
 - 1.8 held-item positions, chests, beds, signs, and mobs whose models changed
 - Particles, paintings, effect icons, compass and clock, enchantment glint, menu background
 - Custom model data, custom bows, `.lang` files and OptiFine (`mcpatcher/`) folders
-- `pack.mcmeta` files newer versions reject, like descriptions with `\!` (fine up to 1.8): the pack shows up and converts
+- `pack.mcmeta` files newer versions reject, like descriptions with `\!` or line breaks (fine up to 1.8): the pack shows up and converts
 
 Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
