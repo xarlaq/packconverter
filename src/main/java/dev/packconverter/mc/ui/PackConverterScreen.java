@@ -1,6 +1,6 @@
 package dev.packconverter.mc.ui;
 
-import com.mojang.blaze3d.Blaze3D;
+import net.minecraft.util.Util;
 import com.mojang.blaze3d.platform.NativeImage;
 import dev.packconverter.PackConverterClient;
 import dev.packconverter.PackConverterConfig;
@@ -15,7 +15,7 @@ import dev.packconverter.core.source.PackSource;
 import dev.packconverter.mc.LegacyPacks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
@@ -122,7 +122,7 @@ public final class PackConverterScreen extends Screen {
 		buttons.addChild(Button.builder(Component.translatable("packconverter.screen.open_export"), b -> this.openExportFolder()).width(120).build());
 		LinearLayout bottom = footer.addChild(LinearLayout.horizontal().spacing(6));
 		bottom.addChild(Button.builder(Component.translatable("packconverter.screen.settings"),
-			b -> this.minecraft.gui.setScreen(new PackConverterSettingsScreen(this))).width(100).build());
+			b -> this.minecraft.setScreen(new PackConverterSettingsScreen(this))).width(100).build());
 		bottom.addChild(Button.builder(CommonComponents.GUI_DONE, b -> this.onClose()).width(150).build());
 		this.layout.visitWidgets(this::addRenderableWidget);
 		this.repositionElements();
@@ -137,7 +137,7 @@ public final class PackConverterScreen extends Screen {
 
 	@Override
 	public void onClose() {
-		this.minecraft.gui.setScreen(this.parent);
+		this.minecraft.setScreen(this.parent);
 	}
 
 	@Override
@@ -146,10 +146,10 @@ public final class PackConverterScreen extends Screen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-		super.extractRenderState(graphics, mouseX, mouseY, a);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float a) {
+		super.render(graphics, mouseX, mouseY, a);
 		// status line just above the footer buttons
-		graphics.centeredText(this.font, this.status, this.width / 2, this.height - this.layout.getFooterHeight() - 2, 0xFFE0E0E0);
+		graphics.drawCenteredString(this.font, this.status, this.width / 2, this.height - this.layout.getFooterHeight() - 2, 0xFFE0E0E0);
 	}
 
 	/** The folder shown, or the search's results from every folder. */
@@ -277,14 +277,14 @@ public final class PackConverterScreen extends Screen {
 			Files.createDirectories(dir);
 		} catch (IOException ignored) {
 		}
-		Blaze3D.openPath(dir);
+		Util.getPlatform().openPath(dir);
 	}
 
 	/** Where a pack's converted copy goes: straight into the export folder, whatever folder the pack is in. */
 	private static Path output(Item item) {
 		String name = item.path.getFileName().toString();
 		String base = name.toLowerCase(Locale.ROOT).endsWith(".zip") ? name.substring(0, name.length() - 4) : name;
-		return PackConverterConfig.get().exportPath().resolve(base + " (26.3).zip");
+		return PackConverterConfig.get().exportPath().resolve(base + " (1.21.11).zip");
 	}
 
 	/**
@@ -302,18 +302,18 @@ public final class PackConverterScreen extends Screen {
 		Component message = asking.size() == 1 && packs.size() == 1
 			? Component.translatable("packconverter.netherite.ask", asking.getFirst().label)
 			: Component.translatable("packconverter.netherite.ask_all", asking.size(), packs.size());
-		this.minecraft.gui.setScreen(new PopupScreen.Builder(this, Component.translatable("packconverter.netherite.ask.title"))
+		this.minecraft.setScreen(new PopupScreen.Builder(this, Component.translatable("packconverter.netherite.ask.title"))
 			.setWidth(360)
-			.addMessage(message)
+			.setMessage(message)
 			.addButton(Component.translatable("packconverter.netherite.ask.yes"), popup -> {
 				popup.onClose();
-				then.accept(new Options(true, color));
+				then.accept(config.conversionOptions().withNetherite(true, color));
 			})
-			.addButton(Component.translatable("packconverter.netherite.ask.pick"), popup -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this,
-				asking.getFirst().path, color, Component.translatable("packconverter.netherite.save"), picked -> then.accept(new Options(true, picked)))))
+			.addButton(Component.translatable("packconverter.netherite.ask.pick"), popup -> this.minecraft.setScreen(new NetheriteColorScreen(this,
+				asking.getFirst().path, color, Component.translatable("packconverter.netherite.save"), picked -> then.accept(config.conversionOptions().withNetherite(true, picked)))))
 			.addButton(Component.translatable("packconverter.netherite.ask.no"), popup -> {
 				popup.onClose();
-				then.accept(new Options(false, color));
+				then.accept(config.conversionOptions().withNetherite(false, color));
 			})
 			.addButton(CommonComponents.GUI_CANCEL, PopupScreen::onClose)
 			.build());
@@ -337,9 +337,9 @@ public final class PackConverterScreen extends Screen {
 			this.exportAll(packs, true, options);
 			return;
 		}
-		this.minecraft.gui.setScreen(new PopupScreen.Builder(this, Component.translatable("packconverter.screen.exists_all.title"))
+		this.minecraft.setScreen(new PopupScreen.Builder(this, Component.translatable("packconverter.screen.exists_all.title"))
 			.setWidth(300)
-			.addMessage(Component.translatable("packconverter.screen.exists_all", existing, packs.size()))
+			.setMessage(Component.translatable("packconverter.screen.exists_all", existing, packs.size()))
 			.addButton(Component.translatable("packconverter.screen.exists_all.replace"), popup -> {
 				popup.onClose();
 				this.exportAll(packs, true, options);
@@ -400,7 +400,7 @@ public final class PackConverterScreen extends Screen {
 			.withColor(ChatFormatting.AQUA).withUnderlined(true)
 			.withClickEvent(new ClickEvent.OpenFile(dir))
 			.withHoverEvent(new HoverEvent.ShowText(Component.literal(dir.toString()))));
-		Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(Component.translatable("packconverter.chat.saved_all", count, link));
+		Minecraft.getInstance().gui.getChat().addMessage(Component.translatable("packconverter.chat.saved_all", count, link));
 	}
 
 	private void convertSelected() {
@@ -417,7 +417,7 @@ public final class PackConverterScreen extends Screen {
 			return;
 		}
 		// already converted (or a same-named pack from another folder): replace it, save a copy, or cancel
-		this.minecraft.gui.setScreen(ExistingExportPopup.create(this, out, target -> this.export(item, name, target, options)));
+		this.minecraft.setScreen(ExistingExportPopup.create(this, out, target -> this.export(item, name, target, options)));
 	}
 
 	private void export(Item item, String name, Path out, Options options) {
@@ -456,7 +456,7 @@ public final class PackConverterScreen extends Screen {
 			.withClickEvent(new ClickEvent.OpenFile(dir))
 			.withHoverEvent(new HoverEvent.ShowText(Component.literal(dir.toString()))));
 		Component message = Component.translatable("packconverter.chat.saved", out.getFileName().toString(), link);
-		Minecraft.getInstance().gui.hud.getChat().addClientSystemMessage(message);
+		Minecraft.getInstance().gui.getChat().addMessage(message);
 	}
 
 	private enum Kind {UP, FOLDER, PACK}
@@ -551,7 +551,7 @@ public final class PackConverterScreen extends Screen {
 			}
 
 			@Override
-			public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+			public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float a) {
 				int x = this.getContentX() + 2, y = this.getContentY();
 				switch (this.item.kind) {
 					case UP -> graphics.blitSprite(RenderPipelines.GUI_TEXTURED, FOLDER_UP, x, y, 20, 20);
@@ -560,13 +560,13 @@ public final class PackConverterScreen extends Screen {
 				}
 				int tx = x + 24;
 				int color = this.item.kind == Kind.PACK ? 0xFFFFFFFF : 0xFFFFE080;
-				graphics.text(PackConverterScreen.this.font, this.item.label, tx, y + 1, color);
+				graphics.drawString(PackConverterScreen.this.font, this.item.label, tx, y + 1, color);
 				Component detail = switch (this.item.kind) {
 					case UP -> Component.translatable("packconverter.screen.up").withStyle(ChatFormatting.DARK_GRAY);
 					case FOLDER -> Component.translatable("packconverter.screen.folder").withStyle(ChatFormatting.DARK_GRAY);
 					case PACK -> this.item.detail;
 				};
-				graphics.text(PackConverterScreen.this.font, detail, tx, y + 12, 0xFFA0A0A0);
+				graphics.drawString(PackConverterScreen.this.font, detail, tx, y + 12, 0xFFA0A0A0);
 			}
 
 			/** The pack's icon (uploaded on first use), or the unknown pack one. */

@@ -42,7 +42,7 @@ public abstract class TextureAtlasMixin {
 			if (levels.length != this.maxMipLevel + 1 || levels[0].getWidth() > this.width || levels[0].getHeight() > this.height) return;
 			var encoder = RenderSystem.getDevice().createCommandEncoder();
 			for (int level = 0; level < levels.length; level++) {
-				encoder.writeToTexture(((TextureAtlas) (Object) this).getTexture(), levels[level], level, 0, 0, 0);
+				encoder.writeToTexture(((TextureAtlas) (Object) this).getTexture(), levels[level], level, 0, 0, 0, levels[level].getWidth(), levels[level].getHeight(), 0, 0);
 			}
 		} finally {
 			for (NativeImage image : levels) image.close();

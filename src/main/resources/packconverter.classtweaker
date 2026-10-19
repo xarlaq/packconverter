@@ -1,4 +1,4 @@
-accessWidener v2 official
+accessWidener v2 named
 
 # StitcherMixin: the stitcher's sprite holder
 accessible class net/minecraft/client/renderer/texture/Stitcher$Holder

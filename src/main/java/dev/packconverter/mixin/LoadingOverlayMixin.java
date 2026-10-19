@@ -5,7 +5,7 @@ import dev.packconverter.PackConverterConfig;
 import dev.packconverter.mc.FastReload;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.LoadingOverlay;
 import net.minecraft.server.packs.resources.ReloadInstance;
 import net.minecraft.util.Util;
@@ -68,19 +68,19 @@ public abstract class LoadingOverlayMixin {
 		if (this.packconverter$seamless()) cir.setReturnValue(true);
 	}
 
-	@Inject(method = "extractRenderState", at = @At("HEAD"), cancellable = true)
-	private void packconverter$seamless(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+	@Inject(method = "render", at = @At("HEAD"), cancellable = true)
+	private void packconverter$seamless(GuiGraphics graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
 		if (!this.packconverter$seamless()) return;
 		ci.cancel();
 		if (this.fadeOutStart > -1L) {
 			// done and swapped in (the screen was set up again for the new resources)
-			this.minecraft.gui.setOverlay(null);
+			this.minecraft.setOverlay(null);
 			return;
 		}
 		// the screen as it is (the world and HUD are drawn under every overlay), mouse away so nothing lights up
-		if (this.minecraft.gui.screen() != null && !this.packconverter$noScreen) {
+		if (this.minecraft.screen != null && !this.packconverter$noScreen) {
 			try {
-				this.minecraft.gui.screen().extractRenderStateWithTooltipAndSubtitles(graphics, -1, -1, a);
+				this.minecraft.screen.renderWithTooltipAndSubtitles(graphics, -1, -1, a);
 			} catch (RuntimeException e) {
 				this.packconverter$noScreen = true;
 				PackConverterClient.LOGGER.warn("Could not draw the screen during a reload, showing only the progress", e);

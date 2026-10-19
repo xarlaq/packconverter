@@ -3,7 +3,7 @@
 	"id": "packconverter",
 	"version": "${version}",
 	"name": "Pack Converter",
-	"description": "Old resource packs on 26.3, with close to instant pack loads, pack folders and pack previews",
+	"description": "Old resource packs on 1.21.11, with close to instant pack loads, pack folders and pack previews",
 	"authors": [
 		"xarlaq"
 	],
@@ -26,9 +26,9 @@
 		}
 	],
 	"depends": {
-		"fabricloader": ">=0.19.5",
-		"minecraft": "~26.3",
-		"java": ">=25",
+		"fabricloader": ">=0.16.10",
+		"minecraft": "~1.21.11",
+		"java": ">=21",
 		"fabric-api": "*"
 	},
 	"suggests": {

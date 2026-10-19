@@ -14,6 +14,7 @@ import dev.packconverter.mixin.PackAccessor;
 import dev.packconverter.mixin.PathResourcesSupplierAccessor;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.ChatFormatting;
+import net.minecraft.client.Minecraft;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
@@ -79,7 +80,7 @@ public final class LegacyPacks {
 
 	public static synchronized ConversionCache cache() {
 		if (cache == null) {
-			cache = new ConversionCache(FabricLoader.getInstance().getGameDir().resolve("packconverter").resolve("cache"),
+			cache = new ConversionCache(FabricLoader.getInstance().getGameDir().resolve("packconverter").resolve("cache-" + Converter.TARGET_NAME),
 				() -> PackConverterConfig.get().cacheLimitBytes(), () -> PackConverterConfig.get().conversionOptions());
 		}
 		return cache;
@@ -183,6 +184,19 @@ public final class LegacyPacks {
 		}, PREPARE));
 		future.whenComplete((v, t) -> PREPARING.remove(path, future));
 		return future;
+	}
+
+	/**
+	 * Shows a change of the conversion settings (netherite, the knockback sword, their colours) at once: the old packs
+	 * in use are converted again in the background, then put in again the way a pack switch is (no loading screen,
+	 * sounds and the like kept). Nothing happens when no pack in use is old.
+	 */
+	public static void applyOptions() {
+		Minecraft minecraft = Minecraft.getInstance();
+		List<String> old = minecraft.getResourcePackRepository().getSelectedIds().stream().filter(OLD_BY_ID::containsKey).toList();
+		if (old.isEmpty()) return;
+		CompletableFuture.allOf(old.stream().map(LegacyPacks::prepare).toArray(CompletableFuture[]::new))
+			.whenComplete((v, t) -> minecraft.execute(() -> FastReload.whileSwitching(minecraft::reloadResourcePacks)));
 	}
 
 	/** The converted pack, or null to let the game open the pack as it is. */

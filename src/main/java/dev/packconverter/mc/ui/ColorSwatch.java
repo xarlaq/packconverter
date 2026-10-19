@@ -1,6 +1,6 @@
 package dev.packconverter.mc.ui;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractButton;
 import net.minecraft.client.gui.narration.NarrationElementOutput;
 import net.minecraft.client.input.InputWithModifiers;
@@ -25,7 +25,7 @@ final class ColorSwatch extends AbstractButton {
 	}
 
 	@Override
-	protected void extractContents(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
+	protected void renderContents(GuiGraphics graphics, int mouseX, int mouseY, float a) {
 		graphics.fill(this.getX(), this.getY(), this.getRight(), this.getBottom(), this.isHoveredOrFocused() ? 0xFFFFFFFF : 0xFF808080);
 		graphics.fill(this.getX() + 1, this.getY() + 1, this.getRight() - 1, this.getBottom() - 1, 0xFF000000 | this.color.getAsInt());
 	}

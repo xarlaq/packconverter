@@ -25,7 +25,7 @@ public abstract class MinecraftMixin {
 	 * Reading it means opening every pack in resourcepacks/, on the render thread, as the switch starts: the first of
 	 * its two hitches, long with hundreds of packs.
 	 */
-	@WrapOperation(method = "reloadResourcePacks(ZLnet/minecraft/client/GameLoadCookie;)Ljava/util/concurrent/CompletableFuture;",
+	@WrapOperation(method = "reloadResourcePacks(ZLnet/minecraft/client/Minecraft$GameLoadCookie;)Ljava/util/concurrent/CompletableFuture;",
 		at = @At(value = "INVOKE", target = "Lnet/minecraft/server/packs/repository/PackRepository;reload()V"))
 	private void packconverter$keepPackList(PackRepository repository, Operation<Void> original) {
 		if (!FastReload.fastSwitch()) original.call(repository);

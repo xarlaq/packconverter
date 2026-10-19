@@ -2,9 +2,9 @@ package dev.packconverter.mc.preview;
 
 import dev.packconverter.PackConverterConfig;
 import dev.packconverter.mc.LegacyPacks;
-import dev.packconverter.mixin.GuiGraphicsExtractorInvoker;
+import dev.packconverter.mixin.GuiGraphicsInvoker;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.client.gui.screens.packs.PackSelectionModel;
@@ -33,7 +33,7 @@ public final class PackTooltip {
 	}
 
 	/** For the pack row under the mouse in either list, if over its name and description (not the icon's arrows). */
-	public static void extract(GuiGraphicsExtractor graphics, int mouseX, int mouseY, PackSelectionModel model,
+	public static void extract(GuiGraphics graphics, int mouseX, int mouseY, PackSelectionModel model,
 		@Nullable TransferableSelectionList... lists) {
 		for (TransferableSelectionList list : lists) {
 			if (list == null || !list.isMouseOver(mouseX, mouseY)) continue;
@@ -53,7 +53,7 @@ public final class PackTooltip {
 		return lastShown;
 	}
 
-	private static void show(GuiGraphicsExtractor graphics, PackSelectionModel.Entry pack, int mouseX, int mouseY) {
+	private static void show(GuiGraphics graphics, PackSelectionModel.Entry pack, int mouseX, int mouseY) {
 		String id = pack.getId();
 		PackPreview preview = PackPreviews.get(id);
 		List<Component> lines = PackConverterConfig.get().conversionDetails ? LegacyPacks.describe(id) : null;
@@ -69,7 +69,7 @@ public final class PackTooltip {
 		if (text) {
 			for (Component line : lines) minecraft.font.split(line, TOOLTIP_WIDTH).forEach(l -> components.add(ClientTooltipComponent.create(l)));
 		}
-		((GuiGraphicsExtractorInvoker) graphics).packconverter$setTooltip(minecraft.font, components, mouseX, mouseY,
+		((GuiGraphicsInvoker) graphics).packconverter$setTooltip(minecraft.font, components, mouseX, mouseY,
 			DefaultTooltipPositioner.INSTANCE, null, true);
 		lastShown = id;
 	}

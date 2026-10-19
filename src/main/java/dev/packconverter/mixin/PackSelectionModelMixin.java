@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class PackSelectionModelMixin {
 	@Inject(method = "select", at = @At("TAIL"))
 	private void packconverter$convertAhead(CallbackInfo ci) {
-		if (Minecraft.getInstance().gui.screen() instanceof ResourcePackScreen screen && screen.packconverter$isResourcePacks()) {
+		if (Minecraft.getInstance().screen instanceof ResourcePackScreen screen && screen.packconverter$isResourcePacks()) {
 			LegacyPacks.prepare(((PackSelectionModel.Entry) this).getId());
 		}
 	}

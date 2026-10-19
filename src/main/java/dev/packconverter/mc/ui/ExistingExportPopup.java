@@ -21,7 +21,7 @@ public final class ExistingExportPopup {
 		Path copy = freeCopy(existing);
 		return new PopupScreen.Builder(behind, Component.translatable("packconverter.screen.exists.title"))
 			.setWidth(300)
-			.addMessage(Component.translatable("packconverter.screen.exists", existing.getFileName().toString()))
+			.setMessage(Component.translatable("packconverter.screen.exists", existing.getFileName().toString()))
 			.addButton(Component.translatable("packconverter.screen.exists.replace"), popup -> {
 				popup.onClose();
 				choice.accept(existing);

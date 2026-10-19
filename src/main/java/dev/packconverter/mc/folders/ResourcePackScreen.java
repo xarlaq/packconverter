@@ -1,6 +1,6 @@
 package dev.packconverter.mc.folders;
 
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.SpriteIconButton;
 import net.minecraft.client.gui.screens.packs.PackSelectionModel;
 import org.jspecify.annotations.Nullable;
@@ -21,7 +21,7 @@ public interface ResourcePackScreen {
 	void packconverter$setRandomButton(SpriteIconButton button);
 
 	/** Sets the pack tooltip for the row under the mouse ({@link dev.packconverter.mc.preview.PackTooltip}). */
-	void packconverter$packTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY);
+	void packconverter$packTooltip(GuiGraphics graphics, int mouseX, int mouseY);
 
 	PackSelectionModel packconverter$model();
 

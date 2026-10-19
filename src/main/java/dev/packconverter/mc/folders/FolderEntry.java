@@ -2,7 +2,7 @@ package dev.packconverter.mc.folders;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.screens.packs.TransferableSelectionList;
 import net.minecraft.client.input.KeyEvent;
@@ -45,7 +45,7 @@ public final class FolderEntry extends TransferableSelectionList.Entry {
 	}
 
 	@Override
-	public void extractContent(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a) {
+	public void renderContent(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float a) {
 		int x = this.getContentX(), y = this.getContentY();
 		graphics.blitSprite(RenderPipelines.GUI_TEXTURED, this.row.back ? FOLDER_UP : FOLDER, x, y, 32, 32);
 		if (hovered || this.list.getSelected() == this && this.list.isFocused()) {
@@ -54,10 +54,10 @@ public final class FolderEntry extends TransferableSelectionList.Entry {
 		}
 		this.name.setMaxWidth(TEXT_WIDTH);
 		this.name.setPosition(x + 32 + 2, y + 1);
-		this.name.extractRenderState(graphics, mouseX, mouseY, a);
+		this.name.render(graphics, mouseX, mouseY, a);
 		this.detail.setMaxWidth(TEXT_WIDTH);
 		this.detail.setPosition(x + 32 + 2, y + 12);
-		this.detail.extractRenderState(graphics, mouseX, mouseY, a);
+		this.detail.render(graphics, mouseX, mouseY, a);
 	}
 
 	public Row row() {

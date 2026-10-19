@@ -1,7 +1,7 @@
 package dev.packconverter.mixin;
 
 import dev.packconverter.mc.folders.ResourcePackScreen;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -14,9 +14,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  */
 @Mixin(Screen.class)
 public abstract class ScreenMixin {
-	@Inject(method = "extractRenderStateWithTooltipAndSubtitles", at = @At(value = "INVOKE",
-		target = "Lnet/minecraft/client/gui/GuiGraphicsExtractor;extractDeferredElements(IIF)V"))
-	private void packconverter$packTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
+	@Inject(method = "renderWithTooltipAndSubtitles", at = @At(value = "INVOKE",
+		target = "Lnet/minecraft/client/gui/GuiGraphics;renderDeferredElements()V"))
+	private void packconverter$packTooltip(GuiGraphics graphics, int mouseX, int mouseY, float a, CallbackInfo ci) {
 		if ((Object) this instanceof ResourcePackScreen packs) packs.packconverter$packTooltip(graphics, mouseX, mouseY);
 	}
 }

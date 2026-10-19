@@ -1,12 +1,12 @@
 package dev.packconverter.mc.preview;
 
-import com.mojang.renderpearl.api.pipeline.RenderPipeline;
+import com.mojang.blaze3d.pipeline.RenderPipeline;
 import dev.packconverter.PackConverterConfig;
 import dev.packconverter.core.HudPreview.Piece;
 import dev.packconverter.core.HudPreview.Region;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.resources.Identifier;
@@ -140,20 +140,20 @@ public final class PackPreview {
 			}
 
 			@Override
-			public void extractImage(Font font, int x, int y, int w, int h, GuiGraphicsExtractor graphics) {
+			public void renderImage(Font font, int x, int y, int w, int h, GuiGraphics graphics) {
 				PackPreview.this.draw(graphics, x, y);
 			}
 		};
 	}
 
-	private void draw(GuiGraphicsExtractor graphics, int x, int y) {
+	private void draw(GuiGraphics graphics, int x, int y) {
 		long now = Util.getMillis();
 		// one material after another, on the player (turning once every 10 seconds), the ore and the tools
 		Material material = this.materials[(int) (now / MATERIAL_MS % this.materials.length)];
 		ArmorSet set = material.armor();
 		ArmorPreviewRenderer.Uv armor = this.uv(set.armor()), leggings = this.uv(set.leggings());
 		if (armor != null && leggings != null) {
-			graphics.guiRenderState.addPicturesInPictureState(new ArmorPreviewRenderer.State(this.texture, armor, leggings,
+			graphics.guiRenderState.submitPicturesInPictureState(new ArmorPreviewRenderer.State(this.texture, armor, leggings,
 				this.uv(set.armorOverlay()), this.uv(set.leggingsOverlay()), set.tint(),
 				25 + (now % 10_000) * 0.036F, 0, x, y + 2, x + MODEL_WIDTH, y + HEIGHT, 46));
 		}
@@ -214,7 +214,7 @@ public final class PackPreview {
 	}
 
 	/** A full block as the game shows it in a slot: three faces of a cube seen from above, the sides shaded. */
-	private void block(GuiGraphicsExtractor graphics, Piece side, Piece top, int x, int y) {
+	private void block(GuiGraphics graphics, Piece side, Piece top, int x, int y) {
 		Region s = this.regions.get(side), t = this.regions.get(top);
 		if (s == null || t == null) return;
 		// a 10 px cube (the GUI's 0.625 scale) turned 225° and tilted 30°: corners at ±7.07 across, ±3.54 / 4.33 / 7.87 down
@@ -225,7 +225,7 @@ public final class PackPreview {
 	}
 
 	/** The texture on the parallelogram from (ox, oy) along (ax, ay) for its width and (bx, by) for its height. */
-	private void face(GuiGraphicsExtractor graphics, Region r, float ox, float oy, float ax, float ay, float bx, float by, int color) {
+	private void face(GuiGraphics graphics, Region r, float ox, float oy, float ax, float ay, float bx, float by, int color) {
 		graphics.pose().pushMatrix();
 		graphics.pose().translate(ox, oy);
 		graphics.pose().mul(new Matrix3x2f(ax / 16, ay / 16, bx / 16, by / 16, 0, 0));
@@ -233,18 +233,18 @@ public final class PackPreview {
 		graphics.pose().popMatrix();
 	}
 
-	private void draw(GuiGraphicsExtractor graphics, Piece piece, int x, int y, int w, int h) {
+	private void draw(GuiGraphics graphics, Piece piece, int x, int y, int w, int h) {
 		this.draw(graphics, RenderPipelines.GUI_TEXTURED, piece, x, y, w, h, -1);
 	}
 
-	private void draw(GuiGraphicsExtractor graphics, RenderPipeline pipeline, Piece piece, int x, int y, int w, int h, int color) {
+	private void draw(GuiGraphics graphics, RenderPipeline pipeline, Piece piece, int x, int y, int w, int h, int color) {
 		Region r = this.regions.get(piece);
 		if (r == null) return;
 		graphics.blit(pipeline, this.texture, x, y, r.x(), r.y(), w, h, r.w(), r.h(), this.textureWidth, this.textureHeight, color);
 	}
 
 	/** The left {@code shown} of {@code full} GUI pixels (a bar's progress). */
-	private void drawPart(GuiGraphicsExtractor graphics, Piece piece, int x, int y, int shown, int full, int h) {
+	private void drawPart(GuiGraphics graphics, Piece piece, int x, int y, int shown, int full, int h) {
 		Region r = this.regions.get(piece);
 		if (r == null) return;
 		graphics.blit(RenderPipelines.GUI_TEXTURED, this.texture, x, y, r.x(), r.y(), shown, h, r.w() * shown / full, r.h(),

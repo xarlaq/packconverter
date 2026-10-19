@@ -31,7 +31,7 @@ public final class FinishStep implements Step {
 			tree.remove(path);
 			dropped++;
 		}
-		if (dropped > 0) ctx.warn("Removed " + dropped + " shader files (old shaders don't compile on " + Converter.TARGET + ")");
+		if (dropped > 0) ctx.warn("Removed " + dropped + " shader files (old shaders don't compile on " + Converter.TARGET_NAME + ")");
 
 		JsonObject root = Json.obj(tree.json("pack.mcmeta"));
 		if (root == null) root = new JsonObject();

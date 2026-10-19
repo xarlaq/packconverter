@@ -3,32 +3,32 @@ package dev.packconverter.mc.preview;
 import com.mojang.blaze3d.platform.Lighting;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.render.pip.PictureInPictureRenderer;
+import net.minecraft.client.gui.render.state.pip.PictureInPictureRenderState;
 import net.minecraft.client.model.Model;
 import net.minecraft.client.model.geom.EntityModelSet;
 import net.minecraft.client.model.geom.ModelLayers;
-import net.minecraft.client.renderer.SubmitNodeCollector;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ArmorModelSet;
-import net.minecraft.client.renderer.rendertype.RenderType;
 import net.minecraft.client.renderer.rendertype.RenderTypes;
-import net.minecraft.client.renderer.state.gui.pip.PictureInPictureRenderState;
 import net.minecraft.client.renderer.texture.OverlayTexture;
-import net.minecraft.client.renderer.texture.UvMapping;
 import net.minecraft.resources.Identifier;
-import net.minecraft.util.Unit;
 import net.minecraft.world.entity.player.PlayerModelType;
 import net.minecraft.world.entity.player.PlayerSkin;
+import org.joml.Matrix4fStack;
 import org.jspecify.annotations.Nullable;
 
 import java.util.function.Supplier;
 
 /**
  * The 3D player of a pack preview: the player's own skin wearing one of the pack's armor sets, turning slowly. The
- * armor textures are regions of the preview's one texture. Only runs while a preview tooltip is on screen; models are
- * made on first use.
+ * armor textures are regions of the preview's one texture: the armor models are drawn through a vertex consumer that
+ * moves their texture coordinates into that region. Only runs while a preview tooltip is on screen; models are made on
+ * first use.
  */
 public final class ArmorPreviewRenderer extends PictureInPictureRenderer<ArmorPreviewRenderer.State> {
 	private static final int FULL_BRIGHT = 15728880;
@@ -36,16 +36,7 @@ public final class ArmorPreviewRenderer extends PictureInPictureRenderer<ArmorPr
 	private static final float PIVOT = 1.0625F;
 
 	/** Texture coordinates (0-1) of one armor texture within the preview's sheet. */
-	public record Uv(float u0, float v0, float u1, float v1) implements UvMapping {
-		@Override
-		public float getU(float offset) {
-			return this.u0 + (this.u1 - this.u0) * offset;
-		}
-
-		@Override
-		public float getV(float offset) {
-			return this.v0 + (this.v1 - this.v0) * offset;
-		}
+	public record Uv(float u0, float v0, float u1, float v1) {
 	}
 
 	/**
@@ -68,13 +59,17 @@ public final class ArmorPreviewRenderer extends PictureInPictureRenderer<ArmorPr
 	private @Nullable ArmorModelSet<Model.Simple> armor;
 	private @Nullable Supplier<PlayerSkin> skin;
 
+	public ArmorPreviewRenderer(MultiBufferSource.BufferSource bufferSource) {
+		super(bufferSource);
+	}
+
 	@Override
 	public Class<State> getRenderStateClass() {
 		return State.class;
 	}
 
 	@Override
-	protected void renderToTexture(State state, PoseStack pose, SubmitNodeCollector collector) {
+	protected void renderToTexture(State state, PoseStack pose) {
 		Minecraft minecraft = Minecraft.getInstance();
 		EntityModelSet models = minecraft.getEntityModels();
 		if (models != this.bakedFrom) {
@@ -87,29 +82,83 @@ public final class ArmorPreviewRenderer extends PictureInPictureRenderer<ArmorPr
 		if (this.skin == null) this.skin = minecraft.getSkinManager().createLookup(minecraft.getGameProfile(), false);
 		PlayerSkin skin = this.skin.get();
 
-		minecraft.gameRenderer.lighting().setupFor(Lighting.Entry.PLAYER_SKIN);
+		minecraft.gameRenderer.getLighting().setupFor(Lighting.Entry.PLAYER_SKIN);
 		// tilt about the chest, as vanilla's skin preview does
-		int guiScale = minecraft.gameRenderer.gameRenderState().windowRenderState.guiScale;
-		RenderSystem.getModelViewStack().rotateAround(Axis.XP.rotationDegrees(state.pitch()), 0.0F, state.scale() * guiScale * PIVOT, 0.0F);
-		pose.rotateDegrees(Axis.YP, -state.rotation());
+		Matrix4fStack modelView = RenderSystem.getModelViewStack();
+		modelView.pushMatrix();
+		modelView.rotateAround(Axis.XP.rotationDegrees(state.pitch()), 0.0F, state.scale() * minecraft.getWindow().getGuiScale() * PIVOT, 0.0F);
+		pose.mulPose(Axis.YP.rotationDegrees(-state.rotation()));
 		pose.translate(0.0F, -1.6010001F, 0.0F);
 		Model.Simple body = skin.model() == PlayerModelType.SLIM ? this.slim : this.wide;
-		collector.submitModel(body, Unit.INSTANCE, pose, skin.body().texturePath(), FULL_BRIGHT, OverlayTexture.NO_OVERLAY, 0);
-		RenderType armorType = RenderTypes.armorCutoutNoCull(state.sheet());
+		body.renderToBuffer(pose, this.bufferSource.getBuffer(body.renderType(skin.body().texturePath())), FULL_BRIGHT, OverlayTexture.NO_OVERLAY);
+		VertexConsumer armorBuffer = this.bufferSource.getBuffer(RenderTypes.armorCutoutNoCull(state.sheet()));
 		for (Model.Simple model : new Model.Simple[]{this.armor.head(), this.armor.chest(), this.armor.feet()}) {
-			this.armor(collector, model, state.armor(), state.tint(), armorType, pose);
-			this.armor(collector, model, state.armorOverlay(), -1, armorType, pose);
+			armor(model, state.armor(), state.tint(), armorBuffer, pose);
+			armor(model, state.armorOverlay(), -1, armorBuffer, pose);
 		}
-		this.armor(collector, this.armor.legs(), state.leggings(), state.tint(), armorType, pose);
-		this.armor(collector, this.armor.legs(), state.leggingsOverlay(), -1, armorType, pose);
+		armor(this.armor.legs(), state.leggings(), state.tint(), armorBuffer, pose);
+		armor(this.armor.legs(), state.leggingsOverlay(), -1, armorBuffer, pose);
+		this.bufferSource.endBatch();
+		modelView.popMatrix();
 	}
 
-	private void armor(SubmitNodeCollector collector, Model.Simple model, @Nullable Uv uv, int tint, RenderType type, PoseStack pose) {
-		if (uv != null) collector.submitModel(model, Unit.INSTANCE, pose, type, FULL_BRIGHT, OverlayTexture.NO_OVERLAY, tint, uv, 0);
+	private static void armor(Model.Simple model, @Nullable Uv uv, int tint, VertexConsumer buffer, PoseStack pose) {
+		if (uv != null) model.renderToBuffer(pose, new InRegion(buffer, uv), FULL_BRIGHT, OverlayTexture.NO_OVERLAY, tint);
 	}
 
 	@Override
 	protected String getTextureLabel() {
 		return "pack preview player";
+	}
+
+	/** Passes vertices on with their texture coordinates moved into one region of the texture. */
+	private record InRegion(VertexConsumer to, Uv uv) implements VertexConsumer {
+		@Override
+		public VertexConsumer addVertex(float x, float y, float z) {
+			this.to.addVertex(x, y, z);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setColor(int r, int g, int b, int a) {
+			this.to.setColor(r, g, b, a);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setColor(int argb) {
+			this.to.setColor(argb);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv(float u, float v) {
+			this.to.setUv(this.uv.u0() + (this.uv.u1() - this.uv.u0()) * u, this.uv.v0() + (this.uv.v1() - this.uv.v0()) * v);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv1(int u, int v) {
+			this.to.setUv1(u, v);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setUv2(int u, int v) {
+			this.to.setUv2(u, v);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setNormal(float x, float y, float z) {
+			this.to.setNormal(x, y, z);
+			return this;
+		}
+
+		@Override
+		public VertexConsumer setLineWidth(float width) {
+			this.to.setLineWidth(width);
+			return this;
+		}
 	}
 }

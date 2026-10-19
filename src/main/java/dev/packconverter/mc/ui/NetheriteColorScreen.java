@@ -4,7 +4,7 @@ import dev.packconverter.PackConverterClient;
 import dev.packconverter.core.Options;
 import dev.packconverter.mc.preview.ArmorPreviewRenderer;
 import net.minecraft.ChatFormatting;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.AbstractSliderButton;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
@@ -24,11 +24,31 @@ import java.util.function.IntConsumer;
 /**
  * Picks the colour netherite is made in from diamond, with a live preview: the pack's diamond items, the same as
  * netherite, and a player in the netherite armor. Hue, saturation and lightness sliders, a hex box and a few presets.
- * Opened from the settings (vanilla's items) and before saving a converted pack (that pack's items).
+ * Opened from the settings (vanilla's items) and before saving a converted pack (that pack's items). The knockback
+ * sword's colour is picked the same way, with the diamond sword and its recoloured self for the preview.
  */
 public final class NetheriteColorScreen extends Screen {
-	/** Netherite first, then a few darker colours that suit a "better than diamond" tier. */
-	private static final int[] PRESETS = {Options.NETHERITE, 0x1E1B1F, 0x4A1F1F, 0x3A2850, 0x1F2C4A};
+	/** What the colour is for: its title, the colour Reset goes back to, and the presets. */
+	public enum Kind {
+		/** Netherite first, then a few darker colours that suit a "better than diamond" tier. */
+		NETHERITE("packconverter.netherite.title", Options.NETHERITE, 0x1E1B1F, 0x4A1F1F, 0x3A2850, 0x1F2C4A),
+		/** Red first, then other colours that stand out from diamond. */
+		KNOCKBACK("packconverter.knockback.title", Options.KNOCKBACK, 0xE0661A, 0xE0C21A, 0x8E2BD6, 0x1F9E4A);
+
+		private final String title;
+		private final int reset;
+		private final int[] presets;
+
+		Kind(String title, int reset, int... others) {
+			this.title = title;
+			this.reset = reset;
+			this.presets = new int[others.length + 1];
+			this.presets[0] = reset;
+			System.arraycopy(others, 0, this.presets, 1, others.length);
+		}
+	}
+
+	private final Kind kind;
 
 	private final Screen parent;
 	private final @Nullable Path pack;
@@ -52,7 +72,12 @@ public final class NetheriteColorScreen extends Screen {
 	 * @param done gets the chosen colour (0xRRGGBB) when confirmed
 	 */
 	public NetheriteColorScreen(Screen parent, @Nullable Path pack, int color, Component doneLabel, IntConsumer done) {
-		super(Component.translatable("packconverter.netherite.title"));
+		this(parent, Kind.NETHERITE, pack, color, doneLabel, done);
+	}
+
+	public NetheriteColorScreen(Screen parent, Kind kind, @Nullable Path pack, int color, Component doneLabel, IntConsumer done) {
+		super(Component.translatable(kind.title));
+		this.kind = kind;
 		this.parent = parent;
 		this.pack = pack;
 		this.doneLabel = doneLabel;
@@ -86,8 +111,8 @@ public final class NetheriteColorScreen extends Screen {
 			} catch (NumberFormatException ignored) {
 			}
 		});
-		for (int i = 0; i < PRESETS.length; i++) {
-			int preset = PRESETS[i];
+		for (int i = 0; i < this.kind.presets.length; i++) {
+			int preset = this.kind.presets[i];
 			ColorSwatch swatch = this.addRenderableWidget(new ColorSwatch(15, 15, () -> preset, Component.literal(hex(preset)), () -> {
 				this.setColor(preset);
 				this.syncWidgets(true);
@@ -111,12 +136,12 @@ public final class NetheriteColorScreen extends Screen {
 		}));
 		int y = this.height - 26;
 		this.addRenderableWidget(Button.builder(Component.translatable("packconverter.netherite.reset"), b -> {
-			this.setColor(Options.NETHERITE);
+			this.setColor(this.kind.reset);
 			this.syncWidgets(true);
 		}).bounds(cx - 125, y, 70, 20).build());
 		this.addRenderableWidget(Button.builder(CommonComponents.GUI_CANCEL, b -> this.onClose()).bounds(cx - 50, y, 70, 20).build());
 		this.addRenderableWidget(Button.builder(this.doneLabel, b -> {
-			this.minecraft.gui.setScreen(this.parent);
+			this.minecraft.setScreen(this.parent);
 			this.done.accept(this.color);
 		}).bounds(cx + 25, y, 100, 20).build());
 	}
@@ -166,20 +191,27 @@ public final class NetheriteColorScreen extends Screen {
 	}
 
 	@Override
-	public void extractRenderState(GuiGraphicsExtractor graphics, int mouseX, int mouseY, float a) {
-		super.extractRenderState(graphics, mouseX, mouseY, a);
+	public void render(GuiGraphics graphics, int mouseX, int mouseY, float a) {
+		super.render(graphics, mouseX, mouseY, a);
 		int cx = this.width / 2;
-		graphics.centeredText(this.font, this.title, cx, 8, 0xFFFFFFFF);
+		graphics.drawCenteredString(this.font, this.title, cx, 8, 0xFFFFFFFF);
 		// the colour itself, next to its hex
 		graphics.fill(cx - 55, 116, cx - 35, 136, 0xFF000000 | this.color);
-		graphics.outline(cx - 55, 116, 20, 20, 0xFFA0A0A0);
+		graphics.renderOutline(cx - 55, 116, 20, 20, 0xFFA0A0A0);
 		if (this.sample == null) {
-			graphics.centeredText(this.font, Component.translatable("packconverter.netherite.loading").withStyle(ChatFormatting.GRAY), cx + 35, 60, 0xFFFFFFFF);
+			graphics.drawCenteredString(this.font, Component.translatable("packconverter.netherite.loading").withStyle(ChatFormatting.GRAY), cx + 35, 60, 0xFFFFFFFF);
+			return;
+		}
+		if (this.kind == Kind.KNOCKBACK) {
+			// the diamond sword, and the knockback one big beside it
+			int sword = NetheriteSample.ITEMS.indexOf("sword");
+			this.sample.drawItem(graphics, sword, false, cx - 85, 51, 32);
+			this.sample.drawItem(graphics, sword, true, cx - 25, 35, 64);
 			return;
 		}
 		long now = Util.getMillis();
 		if (!this.turned) this.yaw = 25 + (now % 10_000) * 0.036F;
-		graphics.guiRenderState.addPicturesInPictureState(new ArmorPreviewRenderer.State(this.sample.texture(), this.sample.armor(0),
+		graphics.guiRenderState.submitPicturesInPictureState(new ArmorPreviewRenderer.State(this.sample.texture(), this.sample.armor(0),
 			this.sample.armor(1), null, null, -1, this.yaw, this.pitch, cx - 125, 22, cx - 65, 112, 41));
 		// the diamond items small, the netherite ones twice their size below
 		for (int i = 0; i < NetheriteSample.ITEMS.size(); i++) {
@@ -192,7 +224,7 @@ public final class NetheriteColorScreen extends Screen {
 	@Override
 	public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
 		int cx = this.width / 2;
-		if (this.sample != null && event.x() >= cx - 125 && event.x() < cx - 65 && event.y() >= 22 && event.y() < 112) {
+		if (this.kind == Kind.NETHERITE && this.sample != null && event.x() >= cx - 125 && event.x() < cx - 65 && event.y() >= 22 && event.y() < 112) {
 			this.turning = true;
 			this.turned = true;
 			return true;
@@ -216,7 +248,7 @@ public final class NetheriteColorScreen extends Screen {
 
 	@Override
 	public void onClose() {
-		this.minecraft.gui.setScreen(this.parent);
+		this.minecraft.setScreen(this.parent);
 	}
 
 	@Override

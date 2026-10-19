@@ -13,10 +13,11 @@ import dev.packconverter.mc.preview.PackTooltip;
 import dev.packconverter.mc.ui.MenuButtons;
 import dev.packconverter.mc.ui.RandomPack;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.SpriteIconButton;
+import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.gui.layouts.LayoutElement;
 import net.minecraft.client.gui.layouts.LinearLayout;
 import net.minecraft.client.gui.screens.Screen;
@@ -31,7 +32,8 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
+import net.minecraft.util.Util;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -107,7 +109,7 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 	}
 
 	@Override
-	public void packconverter$packTooltip(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
+	public void packconverter$packTooltip(GuiGraphics graphics, int mouseX, int mouseY) {
 		if (this.packconverter$isResourcePacks()) PackTooltip.extract(graphics, mouseX, mouseY, this.model, this.availablePackList, this.selectedPackList);
 	}
 
@@ -133,6 +135,12 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 	@WrapOperation(method = "init", at = @At(value = "INVOKE",
 		target = "Lnet/minecraft/client/gui/layouts/LinearLayout;addChild(Lnet/minecraft/client/gui/layouts/LayoutElement;)Lnet/minecraft/client/gui/layouts/LayoutElement;"))
 	private LayoutElement packconverter$addConvertButton(LinearLayout row, LayoutElement child, Operation<LayoutElement> original) {
+		if (child instanceof Button button && button.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals("pack.openFolder")
+			&& this.packconverter$isResourcePacks()) {
+			// opens the folder shown (1.21.11 builds the button with a lambda we can't reach by name)
+			return original.call(row, Button.builder(button.getMessage(), b -> Util.getPlatform().openPath(this.packconverter$shownDirectory(this.packDir)))
+				.tooltip(Tooltip.create(Component.translatable("pack.folderInfo"))).width(button.getWidth()).build());
+		}
 		if (child instanceof Button button && button.getMessage().getContents() instanceof TranslatableContents t && t.getKey().equals("gui.done")
 			&& this.packconverter$isResourcePacks() && !Lunar.detected()) {
 			this.packconverter$convert = row.addChild(MenuButtons.create(this));
@@ -181,16 +189,13 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		if (this.availablePackList != null) this.availablePackList.setScrollAmount(0);
 	}
 
-	@ModifyArg(method = "lambda$init$0", require = 0,
-		at = @At(value = "INVOKE", target = "Lcom/mojang/blaze3d/Blaze3D;openPath(Ljava/nio/file/Path;)V"))
-	private Path packconverter$openShownFolder(Path dir) {
-		return this.packconverter$shownDirectory(dir);
-	}
-
-	@ModifyArg(method = "lambda$onFilesDrop$0", require = 0, index = 2, at = @At(value = "INVOKE",
-		target = "Lnet/minecraft/client/gui/screens/packs/PackSelectionScreen;copyPacks(Lnet/minecraft/client/Minecraft;Ljava/util/List;Ljava/nio/file/Path;)V"))
-	private Path packconverter$dropIntoShownFolder(Path dir) {
-		return this.packconverter$shownDirectory(dir);
+	/** Packs dropped on the screen go into the folder shown. */
+	@ModifyVariable(method = "copyPacks", at = @At("HEAD"), argsOnly = true)
+	private static Path packconverter$dropIntoShownFolder(Path dir) {
+		boolean resourcePacks = dir.toAbsolutePath().normalize().equals(Minecraft.getInstance().getResourcePackDirectory().toAbsolutePath().normalize());
+		if (!resourcePacks || !PackFolders.enabled() || PackFolders.current().isEmpty()) return dir;
+		Path folder = dir.resolve(PackFolders.current());
+		return Files.isDirectory(folder) ? folder : dir;
 	}
 
 	@Unique

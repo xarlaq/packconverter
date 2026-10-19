@@ -9,7 +9,7 @@ import dev.packconverter.core.HudPreview.Region;
 import dev.packconverter.core.io.Img;
 import dev.packconverter.core.source.PackSource;
 import dev.packconverter.mc.LegacyPacks;
-import net.fabricmc.fabric.api.client.rendering.v1.PictureInPictureRendererRegistry;
+import net.fabricmc.fabric.api.client.rendering.v1.SpecialGuiElementRegistry;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenEvents;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.packs.PackSelectionScreen;
@@ -61,7 +61,7 @@ public final class PackPreviews {
 	}
 
 	public static void register() {
-		PictureInPictureRendererRegistry.register(context -> new ArmorPreviewRenderer());
+		SpecialGuiElementRegistry.register(context -> new ArmorPreviewRenderer(context.vertexConsumers()));
 		ScreenEvents.AFTER_INIT.register((client, screen, width, height) -> {
 			if (screen instanceof PackSelectionScreen) ScreenEvents.remove(screen).register(s -> clear());
 		});

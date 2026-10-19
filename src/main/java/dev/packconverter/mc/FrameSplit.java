@@ -3,7 +3,7 @@ package dev.packconverter.mc;
 import net.minecraft.client.gui.font.FontManager;
 import net.minecraft.client.renderer.ShaderManager;
 import net.minecraft.client.renderer.texture.TextureManager;
-import net.minecraft.client.resources.model.sprite.AtlasManager;
+import net.minecraft.client.resources.model.AtlasManager;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
 

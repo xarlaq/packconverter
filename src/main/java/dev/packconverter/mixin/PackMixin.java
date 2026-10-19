@@ -13,7 +13,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.stream.Stream;
 
 /**
  * Both ways a client resource pack enters the game (pack folder via readMetaAndCreate, server packs via
@@ -40,8 +39,8 @@ public abstract class PackMixin {
 	}
 
 	@Inject(method = "open", at = @At("HEAD"), cancellable = true)
-	private void packconverter$openConverted(CallbackInfoReturnable<Stream<PackResources>> cir) {
+	private void packconverter$openConverted(CallbackInfoReturnable<PackResources> cir) {
 		PackResources converted = LegacyPacks.open(this.location, this.metadata);
-		if (converted != null) cir.setReturnValue(Stream.of(converted));
+		if (converted != null) cir.setReturnValue(converted);
 	}
 }

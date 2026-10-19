@@ -6,7 +6,7 @@ import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.FolderRows;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.packs.PackSelectionModel;
 import net.minecraft.client.gui.screens.packs.TransferableSelectionList;
 import net.minecraft.client.input.MouseButtonEvent;
@@ -76,14 +76,14 @@ public abstract class PackEntryMixin {
 		return mouseX >= x - 1 && mouseX < x + PACKCONVERTER$SIZE + 1 && mouseY >= y - 1 && mouseY < y + PACKCONVERTER$SIZE + 1;
 	}
 
-	@ModifyArg(method = "extractContent", at = @At(value = "INVOKE",
+	@ModifyArg(method = "renderContent", at = @At(value = "INVOKE",
 		target = "Lnet/minecraft/client/gui/components/StringWidget;setMaxWidth(I)Lnet/minecraft/client/gui/components/StringWidget;"))
 	private int packconverter$roomForStar(int width) {
 		return this.packconverter$stars() ? width - PACKCONVERTER$SIZE - 2 : width;
 	}
 
-	@Inject(method = "extractContent", at = @At("TAIL"))
-	private void packconverter$drawStar(GuiGraphicsExtractor graphics, int mouseX, int mouseY, boolean hovered, float a, CallbackInfo ci) {
+	@Inject(method = "renderContent", at = @At("TAIL"))
+	private void packconverter$drawStar(GuiGraphics graphics, int mouseX, int mouseY, boolean hovered, float a, CallbackInfo ci) {
 		if (!this.packconverter$stars()) return;
 		boolean favourite = Favourites.is(this.pack.getId());
 		if (!favourite && !hovered) return;

@@ -11,7 +11,7 @@ import dev.packconverter.core.steps.NetheriteStep;
 import dev.packconverter.mc.LegacyPacks;
 import dev.packconverter.mc.preview.ArmorPreviewRenderer;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
 import net.minecraft.resources.Identifier;
@@ -132,7 +132,7 @@ final class NetheriteSample implements AutoCloseable {
 	}
 
 	/** Draws item {@code index} (diamond or netherite row) at x, y, size by size. */
-	void drawItem(GuiGraphicsExtractor graphics, int index, boolean netherite, int x, int y, int size) {
+	void drawItem(GuiGraphics graphics, int index, boolean netherite, int x, int y, int size) {
 		graphics.blit(RenderPipelines.GUI_TEXTURED, this.id, x, y, index * CELL, netherite ? CELL : 0, size, size, CELL, CELL,
 			this.sheet.getWidth(), this.sheet.getHeight());
 	}

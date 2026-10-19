@@ -7,7 +7,7 @@ import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.PackFolders;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
-import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenKeyboardEvents;
 import net.fabricmc.fabric.api.client.screen.v1.ScreenMouseEvents;
 import net.minecraft.ChatFormatting;
@@ -58,7 +58,7 @@ public final class RandomPack {
 	}
 
 	public static void register() {
-		KeyMappingHelper.registerKeyMapping(KEY);
+		KeyBindingHelper.registerKeyBinding(KEY);
 		ClientTickEvents.END_CLIENT_TICK.register(client -> {
 			while (KEY.consumeClick()) applyAny(client);
 		});
@@ -138,7 +138,7 @@ public final class RandomPack {
 	/** From the pack screen: a pack from the list shown, through the screen's own model (so "Done" keeps it). */
 	private static void applyShown(Screen screen) {
 		Minecraft minecraft = Minecraft.getInstance();
-		if (minecraft.gui.overlay() != null || preparing || !(screen instanceof ResourcePackScreen packs)) return; // still on the last one
+		if (minecraft.getOverlay() != null || preparing || !(screen instanceof ResourcePackScreen packs)) return; // still on the last one
 		PackSelectionModel model = packs.packconverter$model();
 		String search = packs.packconverter$search().toLowerCase(Locale.ROOT);
 		String folder = PackFolders.enabled() ? PackFolders.current() : "";
@@ -179,7 +179,7 @@ public final class RandomPack {
 	 * once it's converted, in the background if it never was.
 	 */
 	private static void applyAny(Minecraft minecraft) {
-		if (!enabled() || minecraft.gui.overlay() != null || preparing) return;
+		if (!enabled() || minecraft.getOverlay() != null || preparing) return;
 		PackRepository repository = minecraft.getResourcePackRepository();
 		List<Pack> pool = repository.getAvailablePacks().stream()
 			.filter(p -> fromFolder(p.getId()) && allowed(p.getId()) && !repository.getSelectedPacks().contains(p)).toList();
@@ -188,7 +188,7 @@ public final class RandomPack {
 			return;
 		}
 		Pack pick = pool.get(RANDOM.nextInt(pool.size()));
-		if (minecraft.player != null) minecraft.player.sendOverlayMessage(Component.translatable("packconverter.random.applied", pick.getTitle()));
+		if (minecraft.player != null) minecraft.player.displayClientMessage(Component.translatable("packconverter.random.applied", pick.getTitle()), true);
 		preparing = true;
 		LegacyPacks.prepare(pick.getId()).whenComplete((v, t) -> minecraft.execute(() -> {
 			preparing = false;
@@ -217,7 +217,7 @@ public final class RandomPack {
 	}
 
 	private static void nothingToPick(Minecraft minecraft) {
-		SystemToast.addOrUpdate(minecraft.gui.toastManager(), NOTHING_TO_PICK, Component.translatable("packconverter.random.none_title"),
+		SystemToast.addOrUpdate(minecraft.getToastManager(), NOTHING_TO_PICK, Component.translatable("packconverter.random.none_title"),
 			Component.translatable("packconverter.random.none"));
 	}
 }

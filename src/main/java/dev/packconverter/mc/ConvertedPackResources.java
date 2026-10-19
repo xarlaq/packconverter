@@ -3,7 +3,7 @@ package dev.packconverter.mc;
 import dev.packconverter.core.ConversionCache;
 import dev.packconverter.core.source.PackSource;
 import net.minecraft.resources.Identifier;
-import net.minecraft.server.packs.AbstractPackMetadataResources;
+import net.minecraft.server.packs.AbstractPackResources;
 import net.minecraft.server.packs.PackLocationInfo;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
@@ -21,7 +21,7 @@ import java.util.Set;
  * Serves a converted pack: unchanged files straight from the original zip or folder, generated ones from the
  * conversion cache. Listing uses the sorted index (prefix range), so it costs the same as a normal pack.
  */
-public final class ConvertedPackResources extends AbstractPackMetadataResources implements PackResources {
+public final class ConvertedPackResources extends AbstractPackResources implements PackResources {
 	private final PackSource source;
 	private final ConversionCache.Entry entry;
 	private final NavigableMap<String, String> files;

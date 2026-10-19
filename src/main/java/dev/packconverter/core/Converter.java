@@ -10,8 +10,10 @@ public final class Converter {
 	/** Bump when conversion output changes, so cached conversions are redone. */
 	public static final int VERSION = 9;
 
-	/** The format converted packs are made for (Minecraft 26.3). */
-	public static final PackMeta.Format TARGET = new PackMeta.Format(97, 1);
+	/** The format converted packs are made for (Minecraft 1.21.11). Steps for later versions don't run. */
+	public static final PackMeta.Format TARGET = new PackMeta.Format(75, 0);
+	/** The target version, for messages. */
+	public static final String TARGET_NAME = "1.21.11";
 
 	public record Result(PackTree tree, Context context, long nanos) {
 	}
@@ -41,7 +43,7 @@ public final class Converter {
 		PackTree tree = new PackTree(source);
 		Context ctx = new Context(meta, vanilla, options);
 		for (Step step : Steps.all()) {
-			if (ctx.before(step.format())) run(step, tree, ctx);
+			if (ctx.before(step.format()) && forTarget(step)) run(step, tree, ctx);
 		}
 		for (Step step : Steps.finish()) run(step, tree, ctx);
 		return new Result(tree, ctx, System.nanoTime() - start);
@@ -54,9 +56,14 @@ public final class Converter {
 		Context ctx = new Context(meta, vanilla);
 		for (Step step : Steps.all()) {
 			if (stop.test(step)) break;
-			if (ctx.before(step.format())) run(step, tree, ctx);
+			if (ctx.before(step.format()) && forTarget(step)) run(step, tree, ctx);
 		}
 		return new Result(tree, ctx, System.nanoTime() - start);
+	}
+
+	/** A step for a change up to the target version (the 26.x ones are left out on 1.21.11). */
+	private static boolean forTarget(Step step) {
+		return step.format() <= TARGET.major();
 	}
 
 	private static void run(Step step, PackTree tree, Context ctx) {
