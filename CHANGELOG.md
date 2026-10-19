@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Old packs whose pack.mcmeta newer versions reject (escapes like `\!` in the description, fine up to 1.8) show up in the pack list again, and convert.
+- The Available and Selected headers show how many packs each list holds, counting every folder.
+- Converted packs are converted again once, the first time they're used.
+
 ## 1.1.0 (Minecraft 26.3)
 
 - Favourite packs: a star on each pack in the Resource Packs screen. Starred packs stay at the top of the list, from any folder.

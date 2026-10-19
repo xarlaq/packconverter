@@ -8,7 +8,7 @@ import java.util.function.Predicate;
 /** Runs the steps a pack needs, oldest first, on a virtual copy of the pack. */
 public final class Converter {
 	/** Bump when conversion output changes, so cached conversions are redone. */
-	public static final int VERSION = 8;
+	public static final int VERSION = 9;
 
 	/** The format converted packs are made for (Minecraft 26.3). */
 	public static final PackMeta.Format TARGET = new PackMeta.Format(97, 1);

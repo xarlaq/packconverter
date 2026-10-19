@@ -18,7 +18,7 @@ Your original packs stay untouched, and packs made for 26.3 are never converted.
 | **Automatic conversion** | Old packs work as they are: textures, models, GUI, items and mobs are renamed and rearranged for 26.3. |
 | **Convert and save** | Saves a converted copy as a normal 26.3 pack that works without the mod, one pack or a whole folder. |
 | **Pack previews** | Hover a pack to preview its HUD, items, blocks and armor on a 3D player before turning it on. |
-| **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them. |
+| **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them, and each list shows how many packs it holds. |
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
 | **Random pack** | A die button next to Done swaps in a random pack, from all packs or only favourites. Right-click it to bind a key and roll packs while playing. |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
@@ -33,6 +33,7 @@ Your original packs stay untouched, and packs made for 26.3 are never converted.
 - 1.8 held-item positions, chests, beds, signs, and mobs whose models changed
 - Particles, paintings, effect icons, compass and clock, enchantment glint, menu background
 - Custom model data, custom bows, `.lang` files and OptiFine (`mcpatcher/`) folders
+- `pack.mcmeta` files newer versions reject, like descriptions with `\!` (fine up to 1.8): the pack shows up and converts
 
 Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
