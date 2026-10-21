@@ -1,7 +1,8 @@
 # Changelog
 
-## Unreleased
+## 1.5.0 (Minecraft 26.3)
 
+- Netherite and KB sword settings (on or off, colours) show at once in the packs in use: no F3+T, no loading screen.
 - KB sword: diamond swords with Knockback II or more get a colour of their own, the pack's diamond sword recoloured (red by default, any colour in the settings). The game picks it from the enchantments, so saved packs do it without the mod too.
 - Sounds of packs that stay on while you switch others (a server's pack, for one) no longer go silent until F3+T.
 - Old packs whose pack.mcmeta newer versions reject (escapes like `\!` or line breaks in the description, fine up to 1.8) show up in the pack list again, and convert.

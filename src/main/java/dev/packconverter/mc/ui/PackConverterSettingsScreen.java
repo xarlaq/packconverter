@@ -32,6 +32,8 @@ public final class PackConverterSettingsScreen extends Screen {
 	private static final List<String> MATERIALS = List.of("all", "wood", "stone", "copper", "iron", "gold", "diamond", "netherite");
 	private final Screen parent;
 	private final PackConverterConfig config = PackConverterConfig.get();
+	/** The conversion settings packs were last converted with, to see when they change. */
+	private String converted = this.config.conversionOptions().key();
 	// a lower header and footer than usual, so all of it fits at GUI height 240
 	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this, 24, 30);
 	private @Nullable EditBox limit;
@@ -80,7 +82,10 @@ public final class PackConverterSettingsScreen extends Screen {
 			.create(0, 0, 124, 20, Component.translatable("packconverter.settings.netherite"), (button, value) -> this.config.netheriteFromDiamond = value));
 		ColorSwatch color = netherite.addChild(new ColorSwatch(22, 20, this.config::netheriteRgb, Component.translatable("packconverter.settings.netherite_color"),
 			() -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this, null, this.config.netheriteRgb(), CommonComponents.GUI_DONE,
-				picked -> this.config.netheriteColor = String.format("#%06x", picked)))));
+				picked -> {
+					this.config.netheriteColor = String.format("#%06x", picked);
+					this.applyOptions();
+				}))));
 		color.setTooltip(Tooltip.create(Component.translatable("packconverter.settings.netherite_color.tooltip")));
 		// the knockback sword: the switch, and its colour
 		LinearLayout knockback = leftSwitches.addChild(LinearLayout.horizontal().spacing(4));
@@ -89,7 +94,10 @@ public final class PackConverterSettingsScreen extends Screen {
 			.create(0, 0, 124, 20, Component.translatable("packconverter.settings.knockback"), (button, value) -> this.config.knockbackSword = value));
 		ColorSwatch knockbackColor = knockback.addChild(new ColorSwatch(22, 20, this.config::knockbackRgb, Component.translatable("packconverter.settings.knockback_color"),
 			() -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this, NetheriteColorScreen.Kind.KNOCKBACK, null, this.config.knockbackRgb(), CommonComponents.GUI_DONE,
-				picked -> this.config.knockbackColor = String.format("#%06x", picked)))));
+				picked -> {
+					this.config.knockbackColor = String.format("#%06x", picked);
+					this.applyOptions();
+				}))));
 		knockbackColor.setTooltip(Tooltip.create(Component.translatable("packconverter.settings.knockback_color.tooltip")));
 		rightSwitches.addChild(CycleButton.onOffBuilder(this.config.conversionDetails)
 			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.details.tooltip")))
@@ -186,10 +194,20 @@ public final class PackConverterSettingsScreen extends Screen {
 		this.config.save();
 	}
 
+	/** A new colour, or netherite or the knockback sword switched: shown at once in the packs in use. */
+	private void applyOptions() {
+		String now = this.config.conversionOptions().key();
+		if (now.equals(this.converted)) return;
+		this.converted = now;
+		this.config.save();
+		LegacyPacks.applyOptions();
+	}
+
 	@Override
 	public void onClose() {
 		this.apply();
 		LegacyPacks.cache().enforceLimit();
 		this.minecraft.gui.setScreen(this.parent);
+		this.applyOptions();
 	}
 }
