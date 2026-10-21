@@ -2,14 +2,20 @@ package dev.packconverter.mc;
 
 import dev.packconverter.PackConverterClient;
 import dev.packconverter.PackConverterConfig;
+import dev.packconverter.mixin.SoundManagerAccessor;
 import net.minecraft.client.gui.font.FontManager;
 import net.minecraft.client.renderer.ShaderManager;
 import net.minecraft.client.resources.language.LanguageManager;
+import net.minecraft.client.resources.sounds.Sound;
 import net.minecraft.client.sounds.SoundManager;
 import net.minecraft.resources.Identifier;
 import net.minecraft.server.packs.PackResources;
 import net.minecraft.server.packs.PackType;
 import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.Resource;
+import net.minecraft.server.packs.resources.ResourceManager;
+import net.minecraft.server.packs.resources.SimplePreparableReloadListener;
+import net.minecraft.util.profiling.ProfilerFiller;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -22,10 +28,10 @@ import java.util.Set;
 /**
  * Faster pack switching (a setting, on by default). Switching packs in the pack screen reloads every resource; the
  * shaders (compiled again each time: seconds of work), fonts, sounds and languages only change if a pack that was
- * added, removed or moved has any. When none has, those keep what they have (sounds keep playing, too). The pack
- * list isn't read again either ({@code MinecraftMixin}). F3+T and every other reload still reload everything. The
- * loading screen stays out of the way ({@code LoadingOverlayMixin}), and atlases are put together in the background
- * ({@link AtlasUpload}).
+ * added, removed or moved has any. When none has, those keep what they have (sounds keep playing, too; their files
+ * are listed again, {@link SoundFiles}). The pack list isn't read again either ({@code MinecraftMixin}). F3+T and
+ * every other reload still reload everything. The loading screen stays out of the way ({@code LoadingOverlayMixin}),
+ * and atlases are put together in the background ({@link AtlasUpload}).
  */
 public final class FastReload {
 	/** What a pack has that the skippable listeners read. */
@@ -90,7 +96,10 @@ public final class FastReload {
 		for (PreparableReloadListener listener : all) {
 			if (!shaders && listener instanceof ShaderManager) left.add("shaders");
 			else if (!fonts && listener instanceof FontManager) left.add("fonts");
-			else if (!sounds && listener instanceof SoundManager) left.add("sounds");
+			else if (!sounds && listener instanceof SoundManager soundManager) {
+				left.add("sounds");
+				needed.add(new SoundFiles(soundManager));
+			}
 			else if (!languages && listener instanceof LanguageManager) left.add("languages");
 			else needed.add(listener);
 		}
@@ -117,6 +126,32 @@ public final class FastReload {
 			}
 		}
 		return changed;
+	}
+
+	/**
+	 * Stands in for the sound manager when the sounds are kept: its sounds stay, but the files it opens them from are
+	 * listed again from the packs this reload opened. Those listed before belong to the packs the reload closes (a
+	 * zip's files can't be read once it is closed), so sounds not loaded yet, and streamed ones, stayed silent until
+	 * F3+T: a server pack's sounds, for one. Only the listing, nothing is decoded.
+	 */
+	private static final class SoundFiles extends SimplePreparableReloadListener<Map<Identifier, Resource>> {
+		private final SoundManager sounds;
+
+		private SoundFiles(SoundManager sounds) {
+			this.sounds = sounds;
+		}
+
+		@Override
+		protected Map<Identifier, Resource> prepare(ResourceManager manager, ProfilerFiller profiler) {
+			return Sound.SOUND_LISTER.listMatchingResources(manager);
+		}
+
+		@Override
+		protected void apply(Map<Identifier, Resource> files, ResourceManager manager, ProfilerFiller profiler) {
+			Map<Identifier, Resource> cache = ((SoundManagerAccessor) this.sounds).packconverter$soundCache();
+			cache.clear();
+			cache.putAll(files);
+		}
 	}
 
 	private static Contents contents(PackResources pack) {

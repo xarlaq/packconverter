@@ -22,6 +22,7 @@
 		"ReloadableResourceManagerMixin",
 		"RrlsOverlayMixin",
 		"ScreenInvoker",
+		"SoundManagerAccessor",
 		"ScreenMixin",
 		"SpriteContentsAccessor",
 		"SpriteLoaderMixin",

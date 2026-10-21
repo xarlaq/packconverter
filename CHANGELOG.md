@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- Sounds of packs that stay on while you switch others (a server's pack, for one) no longer go silent until F3+T.
 - Old packs whose pack.mcmeta newer versions reject (escapes like `\!` or line breaks in the description, fine up to 1.8) show up in the pack list again, and convert.
 - On Lunar Client, the buttons on the Resource Packs screen are placed more reliably.
 - The Available and Selected headers show how many packs each list holds, counting every folder.
