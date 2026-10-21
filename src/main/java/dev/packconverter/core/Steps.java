@@ -8,6 +8,7 @@ import dev.packconverter.core.steps.CreativeInventory19Step;
 import dev.packconverter.core.steps.Inventory19Step;
 import dev.packconverter.core.steps.EntityLayoutStep;
 import dev.packconverter.core.steps.FinishStep;
+import dev.packconverter.core.steps.KnockbackSwordStep;
 import dev.packconverter.core.steps.NetheriteStep;
 import dev.packconverter.core.steps.GuiScalingStep;
 import dev.packconverter.core.steps.ItemDefinitions1214Step;
@@ -100,6 +101,6 @@ public final class Steps {
 	}
 
 	public static List<Step> finish() {
-		return List.of(new EntityLayoutStep(), new NetheriteStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new FinishStep());
+		return List.of(new EntityLayoutStep(), new NetheriteStep(), new KnockbackSwordStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new FinishStep());
 	}
 }

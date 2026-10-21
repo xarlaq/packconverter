@@ -307,13 +307,13 @@ public final class PackConverterScreen extends Screen {
 			.addMessage(message)
 			.addButton(Component.translatable("packconverter.netherite.ask.yes"), popup -> {
 				popup.onClose();
-				then.accept(new Options(true, color));
+				then.accept(config.conversionOptions().withNetherite(true, color));
 			})
 			.addButton(Component.translatable("packconverter.netherite.ask.pick"), popup -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this,
-				asking.getFirst().path, color, Component.translatable("packconverter.netherite.save"), picked -> then.accept(new Options(true, picked)))))
+				asking.getFirst().path, color, Component.translatable("packconverter.netherite.save"), picked -> then.accept(config.conversionOptions().withNetherite(true, picked)))))
 			.addButton(Component.translatable("packconverter.netherite.ask.no"), popup -> {
 				popup.onClose();
-				then.accept(new Options(false, color));
+				then.accept(config.conversionOptions().withNetherite(false, color));
 			})
 			.addButton(CommonComponents.GUI_CANCEL, PopupScreen::onClose)
 			.build());

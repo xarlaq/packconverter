@@ -23,15 +23,17 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Settings: automatic conversion, pack folders, previews (and which material they show), netherite from diamond (and
- * its colour), conversion details, cache size limit (and clearing it), and where saved packs go.
+ * Settings: automatic conversion, pack folders, previews (and which material they show), netherite from diamond and
+ * the knockback sword (and their colours), conversion details, cache size limit (and clearing it), and where saved
+ * packs go.
  */
 public final class PackConverterSettingsScreen extends Screen {
 	/** What the pack previews can show: every material in turn, or one (see PackPreview). */
 	private static final List<String> MATERIALS = List.of("all", "wood", "stone", "copper", "iron", "gold", "diamond", "netherite");
 	private final Screen parent;
 	private final PackConverterConfig config = PackConverterConfig.get();
-	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
+	// a lower header and footer than usual, so all of it fits at GUI height 240
+	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this, 24, 30);
 	private @Nullable EditBox limit;
 	private @Nullable EditBox exportFolder;
 	private @Nullable StringWidget usage;
@@ -48,9 +50,9 @@ public final class PackConverterSettingsScreen extends Screen {
 		column.defaultCellSetting().alignHorizontallyCenter();
 
 		// the switches two by two
-		LinearLayout switches = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(4));
-		LinearLayout leftSwitches = switches.addChild(LinearLayout.vertical().spacing(4));
-		LinearLayout rightSwitches = switches.addChild(LinearLayout.vertical().spacing(4));
+		LinearLayout switches = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(2));
+		LinearLayout leftSwitches = switches.addChild(LinearLayout.vertical().spacing(2));
+		LinearLayout rightSwitches = switches.addChild(LinearLayout.vertical().spacing(2));
 		leftSwitches.addChild(CycleButton.onOffBuilder(this.config.autoConvert)
 			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.auto.tooltip")))
 			.create(Component.translatable("packconverter.settings.auto"), (button, value) -> this.config.autoConvert = value));
@@ -80,6 +82,15 @@ public final class PackConverterSettingsScreen extends Screen {
 			() -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this, null, this.config.netheriteRgb(), CommonComponents.GUI_DONE,
 				picked -> this.config.netheriteColor = String.format("#%06x", picked)))));
 		color.setTooltip(Tooltip.create(Component.translatable("packconverter.settings.netherite_color.tooltip")));
+		// the knockback sword: the switch, and its colour
+		LinearLayout knockback = leftSwitches.addChild(LinearLayout.horizontal().spacing(4));
+		knockback.addChild(CycleButton.onOffBuilder(this.config.knockbackSword)
+			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.knockback.tooltip")))
+			.create(0, 0, 124, 20, Component.translatable("packconverter.settings.knockback"), (button, value) -> this.config.knockbackSword = value));
+		ColorSwatch knockbackColor = knockback.addChild(new ColorSwatch(22, 20, this.config::knockbackRgb, Component.translatable("packconverter.settings.knockback_color"),
+			() -> this.minecraft.gui.setScreen(new NetheriteColorScreen(this, NetheriteColorScreen.Kind.KNOCKBACK, null, this.config.knockbackRgb(), CommonComponents.GUI_DONE,
+				picked -> this.config.knockbackColor = String.format("#%06x", picked)))));
+		knockbackColor.setTooltip(Tooltip.create(Component.translatable("packconverter.settings.knockback_color.tooltip")));
 		rightSwitches.addChild(CycleButton.onOffBuilder(this.config.conversionDetails)
 			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.details.tooltip")))
 			.create(Component.translatable("packconverter.settings.details"), (button, value) -> this.config.conversionDetails = value));

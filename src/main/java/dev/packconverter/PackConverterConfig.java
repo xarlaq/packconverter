@@ -29,6 +29,10 @@ public final class PackConverterConfig {
 	public boolean netheriteFromDiamond = true;
 	/** The colour for those, as #rrggbb (vanilla netherite's by default). */
 	public String netheriteColor = "#443940";
+	/** Diamond swords with Knockback II or more look different: the pack's diamond sword recoloured. */
+	public boolean knockbackSword = true;
+	/** The colour for that, as #rrggbb (red by default). */
+	public String knockbackColor = "#d62828";
 	/** Which material the pack previews show: "all" (one after another) or one of {@code PackPreview.MATERIAL_NAMES}. */
 	public String previewMaterial = "all";
 	/** Pack switches keep shaders and fonts when no changed pack has any, and the loading screen goes quicker. */
@@ -62,9 +66,18 @@ public final class PackConverterConfig {
 		}
 	}
 
+	/** The knockback sword colour as 0xRRGGBB (red if the setting can't be read). */
+	public int knockbackRgb() {
+		try {
+			return Integer.parseInt(knockbackColor.strip().replace("#", ""), 16) & 0xFFFFFF;
+		} catch (RuntimeException e) {
+			return Options.KNOCKBACK;
+		}
+	}
+
 	/** The choices conversions in the game are made with. */
 	public Options conversionOptions() {
-		return new Options(netheriteFromDiamond, netheriteRgb());
+		return new Options(netheriteFromDiamond, netheriteRgb(), knockbackSword, knockbackRgb());
 	}
 
 	public long cacheLimitBytes() {
