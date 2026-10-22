@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 (Minecraft 26.3)
+
+- Old packs' JSON that only Minecraft 1.8 read (a comma after the last entry, comments and the like) is written as JSON the game reads: textures and models of such packs no longer show as missing, animated ender pearls for one.
+- Converted packs are converted again once, the first time they're used.
+
 ## 1.5.0 (Minecraft 26.3)
 
 - Netherite and KB sword settings (on or off, colours) show at once in the packs in use: no F3+T, no loading screen.

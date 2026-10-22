@@ -18,6 +18,7 @@ import dev.packconverter.core.steps.PrefetchStep;
 import dev.packconverter.core.steps.PrepareStep;
 import dev.packconverter.core.steps.RenameStep;
 import dev.packconverter.core.steps.SliceStep;
+import dev.packconverter.core.steps.StrictJsonStep;
 import dev.packconverter.core.steps.TextureSteps;
 import dev.packconverter.core.steps.ValidateStep;
 import dev.packconverter.core.steps.VanillaCopiesStep;
@@ -101,6 +102,6 @@ public final class Steps {
 	}
 
 	public static List<Step> finish() {
-		return List.of(new EntityLayoutStep(), new NetheriteStep(), new KnockbackSwordStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new FinishStep());
+		return List.of(new EntityLayoutStep(), new NetheriteStep(), new KnockbackSwordStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new StrictJsonStep(), new FinishStep());
 	}
 }
