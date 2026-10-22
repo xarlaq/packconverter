@@ -69,6 +69,72 @@ public final class Json {
 		return out == null ? text : out.append(text, copied, text.length()).toString();
 	}
 
+	/** Whether the game reads this JSON as it is: strict Gson (BOM aside), one value and nothing after it. */
+	public static boolean strict(byte[] data) {
+		try {
+			JsonReader reader = new JsonReader(new StringReader(new String(data, StandardCharsets.UTF_8)));
+			reader.setStrictness(Strictness.STRICT);
+			com.google.gson.JsonParser.parseReader(reader);
+			return reader.peek() == com.google.gson.stream.JsonToken.END_DOCUMENT;
+		} catch (Exception e) {
+			return false;
+		}
+	}
+
+	/**
+	 * Read the way Minecraft 1.8 read pack JSON (lenient, its escapes; {@link #parse}), also with commas before a
+	 * closing bracket or brace (which Gson takes for empty entries, or rejects), and without the empty entries extra
+	 * commas leave in lists: what a file the game now rejects meant. Null if unreadable even so.
+	 */
+	public static JsonElement parseLoose(byte[] data) {
+		if (data == null) return null;
+		JsonElement json = parse(dropTrailingCommas(new String(data, StandardCharsets.UTF_8)));
+		return json == null ? null : withoutNulls(json);
+	}
+
+	/** The text without commas that only have whitespace before a closing bracket or brace (strings left alone). */
+	static String dropTrailingCommas(String text) {
+		StringBuilder out = null;
+		int copied = 0;
+		boolean inString = false;
+		for (int i = 0; i < text.length(); i++) {
+			char c = text.charAt(i);
+			if (inString) {
+				if (c == '\\') i++;
+				else if (c == '"') inString = false;
+				continue;
+			}
+			if (c == '"') {
+				inString = true;
+				continue;
+			}
+			if (c != ',') continue;
+			int next = i + 1;
+			while (next < text.length() && Character.isWhitespace(text.charAt(next))) next++;
+			if (next < text.length() && (text.charAt(next) == ']' || text.charAt(next) == '}')) {
+				if (out == null) out = new StringBuilder(text.length());
+				out.append(text, copied, i);
+				copied = i + 1;
+			}
+		}
+		return out == null ? text : out.append(text, copied, text.length()).toString();
+	}
+
+	/** The same JSON without null entries in lists (left by extra commas); nulls as object values stay. */
+	static JsonElement withoutNulls(JsonElement json) {
+		if (json.isJsonArray()) {
+			JsonArray out = new JsonArray();
+			for (JsonElement e : json.getAsJsonArray()) if (!e.isJsonNull()) out.add(withoutNulls(e));
+			return out;
+		}
+		if (json.isJsonObject()) {
+			JsonObject out = new JsonObject();
+			for (var e : json.getAsJsonObject().entrySet()) out.add(e.getKey(), withoutNulls(e.getValue()));
+			return out;
+		}
+		return json;
+	}
+
 	public static byte[] toBytes(JsonElement json) {
 		return GSON.toJson(json).getBytes(StandardCharsets.UTF_8);
 	}

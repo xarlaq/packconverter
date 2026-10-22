@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.1 (Minecraft 1.21.11)
+
+- Old packs' JSON that only Minecraft 1.8 read (a comma after the last entry, comments and the like) is written as JSON the game reads: textures and models of such packs no longer show as missing, animated ender pearls for one.
+- Converted packs are converted again once, the first time they're used.
+
 ## 1.5.0 (Minecraft 1.21.11)
 
 First version for Minecraft 1.21.11, with everything Pack Converter 1.5.0 has on 26.3:
