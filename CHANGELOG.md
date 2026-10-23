@@ -20,7 +20,7 @@ First version for Minecraft 1.21.11, with everything Pack Converter 1.5.0 has on
 - Blocks 1.13 merged into one (lit furnace and others) keep working with old packs' blockstates.
 - Netherite made from a pack's diamond items, in a colour of your choice (live preview).
 - KB sword: diamond swords with Knockback II or more get a colour of their own, the pack's diamond sword recoloured (red by default, any colour in the settings).
-- Netherite and KB sword settings (on or off, colours) show at once in the packs in use: no F3+T, no loading screen.
+- Changing the netherite or KB sword colour, or turning either on or off, now applies right away: no need to press F3+T or reload your packs.
 - Fast pack switching: no loading screen and no long freeze; shaders, fonts, sounds and languages kept when unchanged; packs never used before converted in the background first.
 - Fixes a bug that dropped wide sprites of HD packs from texture atlases.
 - English and Polish.
