@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.UnaryOperator;
 
 /**
  * Netherite (1.16) for packs that have diamond items but no netherite ones (a setting, on by default):
@@ -41,6 +42,8 @@ public final class NetheriteStep implements Step {
 	private static final float PACK_HUE_RANGE = 60;
 	/** Grey pixels at least this light, next to the main colour, are its shine. */
 	private static final float SHINE_LIGHTNESS = 0.6F;
+	/** For grey art (iron): pixels this unsaturated count as the metal (packs tint their iron a little). */
+	private static final float GREY_SATURATION = 0.18F;
 
 	@Override
 	public String name() {
@@ -62,13 +65,13 @@ public final class NetheriteStep implements Step {
 		float hue = mainHue(diamond);
 		int made = 0;
 		for (String item : ITEMS) {
-			if (this.make(tree, ITEM + "diamond_" + item + ".png", ITEM + "netherite_" + item + ".png", color, hue)) {
+			if (make(tree, ITEM + "diamond_" + item + ".png", ITEM + "netherite_" + item + ".png", img -> recolor(img, color, hue))) {
 				made++;
-				this.copyModel(tree, item);
+				copyModel(tree, "diamond_" + item, "netherite_" + item);
 			}
 		}
 		for (String layer : ARMOR) {
-			if (this.make(tree, EQUIPMENT + layer + "/diamond.png", EQUIPMENT + layer + "/netherite.png", color, hue)) made++;
+			if (make(tree, EQUIPMENT + layer + "/diamond.png", EQUIPMENT + layer + "/netherite.png", img -> recolor(img, color, hue))) made++;
 		}
 		ctx.count("netherite textures made from diamond", made);
 	}
@@ -79,18 +82,22 @@ public final class NetheriteStep implements Step {
 		if (img != null) out.add(img);
 	}
 
-	private boolean make(PackTree tree, String diamond, String netherite, int color, float hue) {
-		if (!tree.has(diamond) || tree.has(netherite)) return false;
-		BufferedImage img = tree.image(diamond);
+	/** {@code to} made from the pack's {@code from} (its animation too), unless the pack has its own. */
+	static boolean make(PackTree tree, String from, String to, UnaryOperator<BufferedImage> recolor) {
+		if (!tree.has(from) || tree.has(to)) return false;
+		BufferedImage img = tree.image(from);
 		if (img == null) return false;
-		tree.putImage(netherite, recolor(img, color, hue));
-		if (tree.has(diamond + ".mcmeta")) tree.copy(diamond + ".mcmeta", netherite + ".mcmeta");
+		tree.putImage(to, recolor.apply(img));
+		if (tree.has(from + ".mcmeta")) tree.copy(from + ".mcmeta", to + ".mcmeta");
 		return true;
 	}
 
-	/** The pack's own diamond item model, if it draws the diamond texture, for netherite too (same hold, same shape). */
-	private void copyModel(PackTree tree, String item) {
-		String from = MODEL + "diamond_" + item + ".json", to = MODEL + "netherite_" + item + ".json";
+	/**
+	 * The pack's own model of item {@code fromItem} (e.g. diamond_sword), if it draws that item's texture, for item
+	 * {@code toItem} too, with its texture (same hold, same shape).
+	 */
+	static void copyModel(PackTree tree, String fromItem, String toItem) {
+		String from = MODEL + fromItem + ".json", to = MODEL + toItem + ".json";
 		if (!tree.has(from) || tree.has(to)) return;
 		JsonObject model = Json.obj(tree.json(from));
 		JsonObject textures = model == null ? null : Json.obj(model, "textures");
@@ -102,8 +109,8 @@ public final class NetheriteStep implements Step {
 			if (!e.getValue().isJsonPrimitive()) continue;
 			String texture = e.getValue().getAsString();
 			String path = texture.startsWith("minecraft:") ? texture.substring("minecraft:".length()) : texture;
-			if (path.equals("item/diamond_" + item)) {
-				copyTextures.addProperty(e.getKey(), "minecraft:item/netherite_" + item);
+			if (path.equals("item/" + fromItem)) {
+				copyTextures.addProperty(e.getKey(), "minecraft:item/" + toItem);
 				uses = true;
 			}
 		}
@@ -132,16 +139,32 @@ public final class NetheriteStep implements Step {
 	 * touching it change too. Images without a main colour (grey art) have their grey pixels recoloured instead.
 	 */
 	public static BufferedImage recolor(BufferedImage src, int rgb, float packHue) {
+		return recolor(src, rgb, packHue, false);
+	}
+
+	/**
+	 * Grey art (iron) recoloured: its grey pixels take {@code rgb}'s hue and saturation, lightness scaled as in
+	 * {@link #recolor(BufferedImage, int, float)}. Coloured pixels (a wooden handle) stay.
+	 */
+	public static BufferedImage recolorGrey(BufferedImage src, int rgb) {
+		return recolor(src, rgb, -1, true);
+	}
+
+	private static BufferedImage recolor(BufferedImage src, int rgb, float packHue, boolean greyArt) {
 		BufferedImage out = Img.copy(Img.toArgb(src));
 		int[] px = Img.pixels(out);
 		int w = out.getWidth();
-		float[] bins = new float[36];
-		histogram(out, bins);
-		if (packHue >= 0) {
-			for (int i = 0; i < 36; i++) if (hueDistance(i * 10 + 5, packHue) > PACK_HUE_RANGE) bins[i] *= 0.25F;
+		float hue = -1;
+		if (!greyArt) {
+			float[] bins = new float[36];
+			histogram(out, bins);
+			if (packHue >= 0) {
+				for (int i = 0; i < 36; i++) if (hueDistance(i * 10 + 5, packHue) > PACK_HUE_RANGE) bins[i] *= 0.25F;
+			}
+			hue = peak(bins);
 		}
-		float hue = peak(bins);
 		boolean grey = hue < 0;
+		float greySaturation = greyArt ? GREY_SATURATION : MIN_SATURATION;
 		float[] hsl = new float[3];
 		boolean[] pick = new boolean[px.length];
 		double sumL = 0, sumS = 0;
@@ -149,7 +172,7 @@ public final class NetheriteStep implements Step {
 		for (int i = 0; i < px.length; i++) {
 			if (px[i] >>> 24 == 0) continue;
 			hsl(px[i], hsl);
-			boolean take = grey ? hsl[1] < MIN_SATURATION : hsl[1] >= MIN_SATURATION && hueDistance(hsl[0], hue) <= HUE_RANGE;
+			boolean take = grey ? hsl[1] < greySaturation : hsl[1] >= MIN_SATURATION && hueDistance(hsl[0], hue) <= HUE_RANGE;
 			if (!take) continue;
 			pick[i] = true;
 			sumL += hsl[2];

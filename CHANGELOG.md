@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Copper from iron: old packs without copper tools and armor get them, recoloured from their own iron items (vanilla copper's colour by default, any colour in the settings, with a preview), the way netherite is made from diamond.
+
 ## 1.5.1 (Minecraft 26.3)
 
 - Old packs' JSON that only Minecraft 1.8 read (a comma after the last entry, comments and the like) is written as JSON the game reads: textures and models of such packs no longer show as missing, animated ender pearls for one.

@@ -31,16 +31,20 @@ public final class NetheriteColorScreen extends Screen {
 	/** What the colour is for: its title, the colour Reset goes back to, and the presets. */
 	public enum Kind {
 		/** Netherite first, then a few darker colours that suit a "better than diamond" tier. */
-		NETHERITE("packconverter.netherite.title", Options.NETHERITE, 0x1E1B1F, 0x4A1F1F, 0x3A2850, 0x1F2C4A),
+		NETHERITE("packconverter.netherite.title", NetheriteSample.Material.NETHERITE, Options.NETHERITE, 0x1E1B1F, 0x4A1F1F, 0x3A2850, 0x1F2C4A),
 		/** Red first, then other colours that stand out from diamond. */
-		KNOCKBACK("packconverter.knockback.title", Options.KNOCKBACK, 0xE0661A, 0xE0C21A, 0x8E2BD6, 0x1F9E4A);
+		KNOCKBACK("packconverter.knockback.title", NetheriteSample.Material.NETHERITE, Options.KNOCKBACK, 0xE0661A, 0xE0C21A, 0x8E2BD6, 0x1F9E4A),
+		/** Copper first, then its exposed, weathered and oxidized colours. */
+		COPPER("packconverter.copper.title", NetheriteSample.Material.COPPER, Options.COPPER, 0xA17E68, 0x6D9A78, 0x4FA58B);
 
 		private final String title;
+		private final NetheriteSample.Material material;
 		private final int reset;
 		private final int[] presets;
 
-		Kind(String title, int reset, int... others) {
+		Kind(String title, NetheriteSample.Material material, int reset, int... others) {
 			this.title = title;
+			this.material = material;
 			this.reset = reset;
 			this.presets = new int[others.length + 1];
 			this.presets[0] = reset;
@@ -90,7 +94,7 @@ public final class NetheriteColorScreen extends Screen {
 		if (this.loading == null) {
 			this.loading = CompletableFuture.supplyAsync(() -> {
 				try {
-					return NetheriteSample.read(this.pack);
+					return NetheriteSample.read(this.pack, this.kind.material);
 				} catch (Exception e) {
 					PackConverterClient.LOGGER.warn("Could not read the diamond items of {}", this.pack, e);
 					return null;
@@ -184,7 +188,7 @@ public final class NetheriteColorScreen extends Screen {
 		if (this.sample == null && this.loading != null && this.loading.isDone()) {
 			NetheriteSample.Images images = this.loading.getNow(null);
 			if (images != null) {
-				this.sample = new NetheriteSample(images);
+				this.sample = new NetheriteSample(images, this.kind.material);
 				this.sample.recolor(this.color);
 			}
 		}
@@ -199,7 +203,7 @@ public final class NetheriteColorScreen extends Screen {
 		graphics.fill(cx - 55, 116, cx - 35, 136, 0xFF000000 | this.color);
 		graphics.outline(cx - 55, 116, 20, 20, 0xFFA0A0A0);
 		if (this.sample == null) {
-			graphics.centeredText(this.font, Component.translatable("packconverter.netherite.loading").withStyle(ChatFormatting.GRAY), cx + 35, 60, 0xFFFFFFFF);
+			graphics.centeredText(this.font, Component.translatable(this.kind == Kind.COPPER ? "packconverter.copper.loading" : "packconverter.netherite.loading").withStyle(ChatFormatting.GRAY), cx + 35, 60, 0xFFFFFFFF);
 			return;
 		}
 		if (this.kind == Kind.KNOCKBACK) {

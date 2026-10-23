@@ -3,6 +3,7 @@ package dev.packconverter.core;
 import dev.packconverter.core.steps.AtlasStep;
 import dev.packconverter.core.steps.Blockstates113Step;
 import dev.packconverter.core.steps.AlphaTestStep;
+import dev.packconverter.core.steps.CopperStep;
 import dev.packconverter.core.steps.Display19Step;
 import dev.packconverter.core.steps.CreativeInventory19Step;
 import dev.packconverter.core.steps.Inventory19Step;
@@ -102,6 +103,6 @@ public final class Steps {
 	}
 
 	public static List<Step> finish() {
-		return List.of(new EntityLayoutStep(), new NetheriteStep(), new KnockbackSwordStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new StrictJsonStep(), new FinishStep());
+		return List.of(new EntityLayoutStep(), new NetheriteStep(), new CopperStep(), new KnockbackSwordStep(), new AtlasStep(), new GuiScalingStep(), new ValidateStep(), new StrictJsonStep(), new FinishStep());
 	}
 }

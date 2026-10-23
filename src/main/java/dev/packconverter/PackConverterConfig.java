@@ -33,6 +33,10 @@ public final class PackConverterConfig {
 	public boolean knockbackSword = true;
 	/** The colour for that, as #rrggbb (red by default). */
 	public String knockbackColor = "#d62828";
+	/** Packs with iron but no copper items get copper ones recoloured from iron. */
+	public boolean copperFromIron = true;
+	/** The colour for those, as #rrggbb (vanilla copper's by default). */
+	public String copperColor = "#c7694a";
 	/** Which material the pack previews show: "all" (one after another) or one of {@code PackPreview.MATERIAL_NAMES}. */
 	public String previewMaterial = "all";
 	/** Pack switches keep shaders and fonts when no changed pack has any, and the loading screen goes quicker. */
@@ -75,9 +79,18 @@ public final class PackConverterConfig {
 		}
 	}
 
+	/** The copper colour as 0xRRGGBB (vanilla copper's if the setting can't be read). */
+	public int copperRgb() {
+		try {
+			return Integer.parseInt(copperColor.strip().replace("#", ""), 16) & 0xFFFFFF;
+		} catch (RuntimeException e) {
+			return Options.COPPER;
+		}
+	}
+
 	/** The choices conversions in the game are made with. */
 	public Options conversionOptions() {
-		return new Options(netheriteFromDiamond, netheriteRgb(), knockbackSword, knockbackRgb());
+		return new Options(netheriteFromDiamond, netheriteRgb(), knockbackSword, knockbackRgb(), copperFromIron, copperRgb());
 	}
 
 	public long cacheLimitBytes() {

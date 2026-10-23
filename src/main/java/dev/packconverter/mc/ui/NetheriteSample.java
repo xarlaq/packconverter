@@ -28,15 +28,26 @@ import java.util.regex.Pattern;
 /**
  * The diamond items and armor a netherite colour is tried on in {@link NetheriteColorScreen} (a pack's own, as
  * converted, or vanilla's), recoloured with {@link NetheriteStep#recolor} whenever the colour changes. Items the pack
- * has no diamond version of show vanilla netherite (what the game would show). One small texture, released with
- * the screen.
+ * has no diamond version of show vanilla netherite (what the game would show). The same for copper, made from iron
+ * ({@link Material}). One small texture, released with the screen.
  */
 final class NetheriteSample implements AutoCloseable {
 	static final List<String> ITEMS = NetheriteStep.ITEMS;
 	private static final String ITEM = "assets/minecraft/textures/item/";
 	private static final String EQUIPMENT = "assets/minecraft/textures/entity/equipment/";
-	private static final Pattern SOURCES = Pattern.compile("pack\\.mcmeta|assets/minecraft/textures/(items?/diamond_(sword|pickaxe|axe|shovel"
-		+ "|hoe|helmet|chestplate|leggings|boots)\\.png|models/armor/diamond_layer_[12]\\.png|entity/equipment/humanoid(_leggings)?/diamond\\.png)");
+	/** What the colour is for: {@code to} items made from the pack's {@code from} ones ({@code grey}: grey art, as iron). */
+	record Material(String from, String to, boolean grey) {
+		static final Material NETHERITE = new Material("diamond", "netherite", false);
+		static final Material COPPER = new Material("iron", "copper", true);
+
+		/** The files of a pack the {@code from} items and armor are in (any version's names). */
+		Pattern sources() {
+			return Pattern.compile("pack\\.mcmeta|assets/minecraft/textures/(items?/" + this.from + "_(sword|pickaxe|axe|shovel"
+				+ "|hoe|helmet|chestplate|leggings|boots)\\.png|models/armor/" + this.from + "_layer_[12]\\.png|entity/equipment/humanoid(_leggings)?/"
+				+ this.from + "\\.png)");
+		}
+	}
+
 	private static final int CELL = 32;
 	private static final int ARMOR_WIDTH = 128, ARMOR_HEIGHT = 64;
 	private static int textures;
@@ -45,28 +56,29 @@ final class NetheriteSample implements AutoCloseable {
 	record Images(Map<String, BufferedImage> diamond, Map<String, BufferedImage> netherite) {
 	}
 
-	/** Reads the diamond items and armor of a pack (or vanilla's, for null). Not on the render thread. */
-	static Images read(@Nullable Path pack) throws IOException {
+	/** Reads the diamond (or iron) items and armor of a pack (or vanilla's, for null). Not on the render thread. */
+	static Images read(@Nullable Path pack, Material material) throws IOException {
 		Map<String, BufferedImage> diamond = new HashMap<>(), netherite = new HashMap<>();
 		PackTree tree = null;
 		if (pack != null) {
 			try (PackSource source = PackSource.open(pack)) {
-				PackSource only = new FilteredPackSource(source, p -> SOURCES.matcher(PackTree.normalize(p)).matches());
+				Pattern sources = material.sources();
+			PackSource only = new FilteredPackSource(source, p -> sources.matcher(PackTree.normalize(p)).matches());
 				PackMeta meta = Converter.readMeta(only);
 				tree = meta != null && Converter.needsConversion(meta) ? Converter.convert(only, meta, LegacyPacks.VANILLA).tree() : new PackTree(only);
 				for (String key : keys()) {
-					BufferedImage img = tree.image(diamondPath(key));
+					BufferedImage img = tree.image(path(material.from(), key));
 					if (img != null) diamond.put(key, img);
 				}
 			}
 		} else {
 			for (String key : keys()) {
-				BufferedImage img = Img.decode(LegacyPacks.VANILLA.read(diamondPath(key)));
+				BufferedImage img = Img.decode(LegacyPacks.VANILLA.read(path(material.from(), key)));
 				if (img != null) diamond.put(key, img);
 			}
 		}
 		for (String key : keys()) {
-			BufferedImage img = Img.decode(LegacyPacks.VANILLA.read(diamondPath(key).replace("diamond", "netherite")));
+			BufferedImage img = Img.decode(LegacyPacks.VANILLA.read(path(material.to(), key)));
 			if (img != null) netherite.put(key, img);
 		}
 		return new Images(diamond, netherite);
@@ -76,12 +88,14 @@ final class NetheriteSample implements AutoCloseable {
 		return java.util.stream.Stream.concat(ITEMS.stream(), NetheriteStep.ARMOR.stream()).toList();
 	}
 
-	private static String diamondPath(String key) {
-		return NetheriteStep.ARMOR.contains(key) ? EQUIPMENT + key + "/diamond.png" : ITEM + "diamond_" + key + ".png";
+	/** Where item or armor layer {@code key} of {@code material} (diamond, iron...) is. */
+	private static String path(String material, String key) {
+		return NetheriteStep.ARMOR.contains(key) ? EQUIPMENT + key + "/" + material + ".png" : ITEM + material + "_" + key + ".png";
 	}
 
 	private final Images images;
-	/** The main hue of all the diamond art, as the conversion finds it. */
+	private final Material material;
+	/** The main hue of all the diamond art, as the conversion finds it (grey art has none). */
 	private final float hue;
 	private final BufferedImage sheet;
 	private final NativeImage pixels;
@@ -89,9 +103,10 @@ final class NetheriteSample implements AutoCloseable {
 	private final Identifier id;
 
 	/** Uploads the sample (render thread). Rows: diamond items, netherite items, then the two netherite armor textures. */
-	NetheriteSample(Images images) {
+	NetheriteSample(Images images, Material material) {
 		this.images = images;
-		this.hue = NetheriteStep.mainHue(images.diamond().values());
+		this.material = material;
+		this.hue = material.grey() ? -1 : NetheriteStep.mainHue(images.diamond().values());
 		this.sheet = Img.create(Math.max(ITEMS.size() * CELL, 2 * ARMOR_WIDTH), 2 * CELL + ARMOR_HEIGHT);
 		for (int i = 0; i < ITEMS.size(); i++) {
 			BufferedImage img = images.diamond().getOrDefault(ITEMS.get(i), images.netherite().get(ITEMS.get(i)));
@@ -120,7 +135,8 @@ final class NetheriteSample implements AutoCloseable {
 	/** The pack's diamond version recoloured, or vanilla netherite if the pack has none (left as it is, like the game). */
 	private @Nullable BufferedImage netherite(String key, int rgb) {
 		BufferedImage diamond = this.images.diamond().get(key);
-		return diamond != null ? NetheriteStep.recolor(diamond, rgb, this.hue) : this.images.netherite().get(key);
+		if (diamond == null) return this.images.netherite().get(key);
+		return this.material.grey() ? NetheriteStep.recolorGrey(diamond, rgb) : NetheriteStep.recolor(diamond, rgb, this.hue);
 	}
 
 	private void put(@Nullable BufferedImage img, int x, int y, int w, int h) {
