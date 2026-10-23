@@ -22,6 +22,7 @@ Your original packs stay untouched, and packs made for 1.21.11 are never convert
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
 | **Random pack** | A die button next to Done swaps in a random pack, from all packs or only favourites. Right-click it to bind a key and roll packs while playing. |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
+| **Copper from iron** | Packs from before copper tools and armor get them, recoloured from their own iron items, in any colour. |
 | **KB sword** | Diamond swords with Knockback II or more stand out: the pack's own diamond sword, recoloured (red by default). Saved packs do it without the mod too. |
 | **Fast pack switching** | No loading screen and no long freeze: new packs go in over a few frames, and packs never used before are converted in the background first. |
 
@@ -53,6 +54,7 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title s
 | **Pack previews** | on | The preview when hovering a pack. |
 | **Previews show** | All | Every material in turn (wood to netherite), or just one. |
 | **Make netherite** | on | Netherite from diamond, in the colour of the swatch next to it. |
+| **Make copper** | on | Copper from iron, in the colour of the swatch next to it. |
 | **KB sword** | on | The knockback sword, in the colour of the swatch next to it. |
 | **Fast pack switching** | on | Keeps the game on screen while packs load, with no long freeze when they go in. |
 | **Hide loading bar** | on | No progress bar while packs switch (RRLS's too). |

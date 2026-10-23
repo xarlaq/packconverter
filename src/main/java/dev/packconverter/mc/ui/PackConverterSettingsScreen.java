@@ -23,8 +23,8 @@ import java.nio.file.Path;
 import java.util.List;
 
 /**
- * Settings: automatic conversion, pack folders, previews (and which material they show), netherite from diamond and
- * the knockback sword (and their colours), conversion details, cache size limit (and clearing it), and where saved
+ * Settings: automatic conversion, pack folders, previews (and which material they show), netherite from diamond,
+ * copper from iron and the knockback sword (and their colours), conversion details, cache size limit (and clearing it), and where saved
  * packs go.
  */
 public final class PackConverterSettingsScreen extends Screen {
@@ -128,6 +128,19 @@ public final class PackConverterSettingsScreen extends Screen {
 				this.config.randomPack = !value.equals("off");
 				this.config.randomFavouritesOnly = value.equals("favourites");
 			}));
+
+		// copper: the switch, and its colour
+		LinearLayout copper = rightSwitches.addChild(LinearLayout.horizontal().spacing(4));
+		copper.addChild(CycleButton.onOffBuilder(this.config.copperFromIron)
+			.withTooltip(value -> Tooltip.create(Component.translatable("packconverter.settings.copper.tooltip")))
+			.create(0, 0, 124, 20, Component.translatable("packconverter.settings.copper"), (button, value) -> this.config.copperFromIron = value));
+		ColorSwatch copperColor = copper.addChild(new ColorSwatch(22, 20, this.config::copperRgb, Component.translatable("packconverter.settings.copper_color"),
+			() -> this.minecraft.setScreen(new NetheriteColorScreen(this, NetheriteColorScreen.Kind.COPPER, null, this.config.copperRgb(), CommonComponents.GUI_DONE,
+				picked -> {
+					this.config.copperColor = String.format("#%06x", picked);
+					this.applyOptions();
+				}))));
+		copperColor.setTooltip(Tooltip.create(Component.translatable("packconverter.settings.copper_color.tooltip")));
 
 		// labels beside their boxes, so all of it fits at GUI height 240
 		LinearLayout limitRow = column.addChild(LinearLayout.horizontal().spacing(6), cell -> cell.paddingBottom(4));
