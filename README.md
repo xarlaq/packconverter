@@ -16,7 +16,7 @@ Your original packs stay untouched, and packs made for 26.3 are never converted.
 | Feature | What it does |
 | --- | --- |
 | **Automatic conversion** | Old packs work as they are: textures, models, GUI, items and mobs are renamed and rearranged for 26.3. |
-| **Convert and save** | Saves a converted copy as a normal 26.3 pack that works without the mod, one pack or a whole folder. |
+| **Convert and save** | Saves a converted copy as a normal 26.3 pack that works without the mod, one pack, several (Ctrl+click, Shift+click) or a whole folder. |
 | **Pack previews** | Hover a pack to preview its HUD, items, blocks and armor on a 3D player before turning it on. |
 | **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them, and each list shows how many packs it holds. |
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
@@ -45,7 +45,7 @@ Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
 ## Settings
 
-In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title screen, the pause menu and the Resource Packs screen). Three tabs:
+In Pack Converter, the tabs after **Save packs** (its button is on the title screen, the pause menu and the Resource Packs screen). **Mod Menu** opens them too.
 
 **Conversion**
 
@@ -57,7 +57,7 @@ In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title s
 | **Make copper** | on | Copper from iron, in the colour of the swatch next to it. |
 | **KB sword** | on | The knockback sword, in the colour of the swatch next to it. |
 
-**Pack screen**
+**Resource packs**
 
 | Option | Default | What it does |
 | --- | --- | --- |
