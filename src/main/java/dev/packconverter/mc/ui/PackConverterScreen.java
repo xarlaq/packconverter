@@ -16,15 +16,20 @@ import dev.packconverter.mc.LegacyPacks;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.gui.components.Button;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.components.ObjectSelectionList;
 import net.minecraft.client.gui.components.PopupScreen;
-import net.minecraft.client.gui.components.StringWidget;
 import net.minecraft.client.gui.components.Tooltip;
+import net.minecraft.client.gui.components.tabs.Tab;
+import net.minecraft.client.gui.components.tabs.TabManager;
+import net.minecraft.client.gui.components.tabs.TabNavigationBar;
 import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
 import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
 import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.renderer.texture.DynamicTexture;
@@ -43,19 +48,27 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 /**
- * Browses the resource pack folder (subfolders included, like pack manager mods allow) and saves converted copies of
- * old packs as normal 26.3 packs, for clients without this mod or to share. Pack details and icons load in the
- * background so big folders open instantly; the search box looks through every folder.
+ * Pack Converter's screen, in tabs (as vanilla's world creation): Save packs, then the settings ({@link SettingsTabs}).
+ * Save packs browses the resource pack folder (subfolders included, like pack manager mods allow) and saves converted
+ * copies of old packs as normal 1.21.11 packs, for clients without this mod or to share; several at once when picked
+ * with Ctrl (one more or less) and Shift (a range), or all with Ctrl+A. Pack details and icons load in the background
+ * so big folders open instantly; the search box looks through every folder.
  */
 public final class PackConverterScreen extends Screen {
+	/** The tabs, in order. */
+	public static final int SAVE_PACKS = 0, CONVERSION = 1, RESOURCE_PACKS = 2, OTHER = 3;
 	private static final ExecutorService WORKER = Executors.newSingleThreadExecutor(r -> {
 		Thread t = new Thread(r, "Pack Converter export");
 		t.setDaemon(true);
@@ -76,68 +89,99 @@ public final class PackConverterScreen extends Screen {
 	private final Path root;
 	private Path folder;
 	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this);
+	private final TabManager tabManager = new TabManager(widget -> this.addRenderableWidget(widget), widget -> this.removeWidget(widget));
+	private final SettingsTabs settings = new SettingsTabs(this);
+	private @Nullable TabNavigationBar tabs;
+	/** The tab shown, kept while a popup or colour screen is open on top (the tabs are made again after it). */
+	private int shownTab;
 	private @Nullable PackList list;
-	private @Nullable StringWidget location;
 	private @Nullable EditBox search;
 	private @Nullable Button convertButton;
 	private @Nullable Button convertAllButton;
+	/** Where the Save packs tab writes its folder line and status line (set as it is laid out). */
+	private int locationY, statusY;
+	private Component location = Component.empty();
 	/** Every pack under resourcepacks, for searches (listed on the first one, again after saving). */
 	private @Nullable List<Path> allPacks;
+	/** Packs picked with Ctrl and Shift (and the one clicked), and where a Shift range starts. Kept while shown. */
+	private final Set<Path> marked = new LinkedHashSet<>();
+	private @Nullable Path anchor;
+	/** The row last clicked, selected again when the rows are listed again. */
+	private @Nullable Path selectedPath;
 	/** Icons uploaded for the rows shown, released when other rows replace them and when the screen closes. */
 	private final List<Identifier> icons = new ArrayList<>();
 	private static int iconCount;
-	/** Set while "Convert folder" runs; pressing the button again asks it to stop after the current pack. */
+	/** Set while several packs are saved; pressing "Convert folder" again asks it to stop after the current pack. */
 	private volatile boolean batch, stopBatch;
 	private Component status = Component.empty();
 	private volatile boolean busy;
 
 	public PackConverterScreen(Screen parent) {
+		this(parent, SAVE_PACKS);
+	}
+
+	/** Opened on tab {@code tab} ({@link #SAVE_PACKS}, {@link #CONVERSION}...). */
+	public PackConverterScreen(Screen parent, int tab) {
 		super(Component.translatable("packconverter.screen.title"));
 		this.parent = parent;
+		this.shownTab = tab;
 		this.root = Minecraft.getInstance().getResourcePackDirectory().toAbsolutePath().normalize();
 		this.folder = root;
 	}
 
 	@Override
 	protected void init() {
-		this.layout.setHeaderHeight(58);
-		this.layout.setFooterHeight(56);
-		LinearLayout header = this.layout.addToHeader(LinearLayout.vertical().spacing(4));
-		header.defaultCellSetting().alignHorizontallyCenter();
-		header.addChild(new StringWidget(this.title, this.font));
-		this.location = header.addChild(new StringWidget(Component.empty(), this.font));
-		String query = this.search != null ? this.search.getValue() : "";
-		this.search = header.addChild(new EditBox(this.font, 200, 18, Component.translatable("packconverter.screen.search")));
-		this.search.setHint(Component.translatable("packconverter.screen.search").withStyle(ChatFormatting.DARK_GRAY));
-		this.search.setValue(query);
-		this.search.setResponder(text -> this.refresh());
-		this.list = this.layout.addToContents(new PackList(this.minecraft));
-		LinearLayout footer = this.layout.addToFooter(LinearLayout.vertical().spacing(6));
-		footer.defaultCellSetting().alignHorizontallyCenter();
-		LinearLayout buttons = footer.addChild(LinearLayout.horizontal().spacing(6));
-		this.convertButton = buttons.addChild(Button.builder(Component.translatable("packconverter.screen.convert"), b -> this.convertSelected())
-			.width(120).tooltip(Tooltip.create(Component.translatable("packconverter.screen.convert.tooltip"))).build());
-		this.convertAllButton = buttons.addChild(Button.builder(Component.translatable("packconverter.screen.convert_all"), b -> this.convertAll())
-			.width(120).tooltip(Tooltip.create(Component.translatable("packconverter.screen.convert_all.tooltip"))).build());
-		buttons.addChild(Button.builder(Component.translatable("packconverter.screen.open_export"), b -> this.openExportFolder()).width(120).build());
-		LinearLayout bottom = footer.addChild(LinearLayout.horizontal().spacing(6));
-		bottom.addChild(Button.builder(Component.translatable("packconverter.screen.settings"),
-			b -> this.minecraft.setScreen(new PackConverterSettingsScreen(this))).width(100).build());
-		bottom.addChild(Button.builder(CommonComponents.GUI_DONE, b -> this.onClose()).width(150).build());
+		this.shownTab = Math.max(0, this.currentTab());
+		List<Tab> all = new ArrayList<>();
+		all.add(new SavePacksTab());
+		all.addAll(this.settings.tabs());
+		this.tabs = TabNavigationBar.builder(this.tabManager, this.width).addTabs(all.toArray(Tab[]::new)).build();
+		this.addRenderableWidget(this.tabs);
+		this.layout.addToFooter(Button.builder(CommonComponents.GUI_DONE, b -> this.onClose()).width(200).build());
 		this.layout.visitWidgets(this::addRenderableWidget);
+		this.tabs.selectTab(this.shownTab, false);
 		this.repositionElements();
 		this.refresh();
 	}
 
+	/** Shows tab {@code index} ({@link #SAVE_PACKS}, {@link #CONVERSION}, {@link #RESOURCE_PACKS}, {@link #OTHER}). */
+	public void showTab(int index) {
+		if (this.tabs != null) this.tabs.selectTab(index, false);
+	}
+
+	/** The tab shown. */
+	public int currentTab() {
+		return this.tabs == null ? this.shownTab : this.tabs.getTabs().indexOf(this.tabManager.getCurrentTab());
+	}
+
 	@Override
 	protected void repositionElements() {
+		if (this.tabs == null) return;
+		this.tabs.setWidth(this.width);
+		this.tabs.arrangeElements();
+		int top = this.tabs.getRectangle().bottom();
+		this.tabManager.setTabArea(new ScreenRectangle(0, top, this.width, this.height - this.layout.getFooterHeight() - top));
+		this.layout.setHeaderHeight(top);
 		this.layout.arrangeElements();
-		if (this.list != null) this.list.updateSize(this.width, this.layout);
+	}
+
+	@Override
+	public boolean keyPressed(KeyEvent event) {
+		if (this.tabs != null && this.tabs.keyPressed(event) || super.keyPressed(event)) return true;
+		// Ctrl+A picks every pack shown (in the search box, it selects the text)
+		if (event.isSelectAll() && this.tabManager.getCurrentTab() instanceof SavePacksTab) {
+			this.markAll();
+			return true;
+		}
+		return false;
 	}
 
 	@Override
 	public void onClose() {
+		this.settings.apply();
+		LegacyPacks.cache().enforceLimit();
 		this.minecraft.setScreen(this.parent);
+		this.settings.applyOptions();
 	}
 
 	@Override
@@ -148,8 +192,72 @@ public final class PackConverterScreen extends Screen {
 	@Override
 	public void render(GuiGraphics graphics, int mouseX, int mouseY, float a) {
 		super.render(graphics, mouseX, mouseY, a);
-		// status line just above the footer buttons
-		graphics.drawCenteredString(this.font, this.status, this.width / 2, this.height - this.layout.getFooterHeight() - 2, 0xFFE0E0E0);
+		graphics.blit(RenderPipelines.GUI_TEXTURED, Screen.FOOTER_SEPARATOR, 0, this.height - this.layout.getFooterHeight() - 2, 0.0F, 0.0F, this.width, 2, 32, 2);
+		if (this.tabManager.getCurrentTab() instanceof SavePacksTab) {
+			graphics.drawCenteredString(this.font, this.location, this.width / 2, this.locationY, 0xFFFFFFFF);
+			graphics.drawCenteredString(this.font, this.status, this.width / 2, this.statusY, 0xFFE0E0E0);
+		}
+	}
+
+	/**
+	 * The pack list with the search box above and the buttons below. The folder line goes above the search box and
+	 * the status line above the buttons, written by the screen.
+	 */
+	private final class SavePacksTab implements Tab {
+		/** Room for the folder line, and for the status line. */
+		private static final int LINE = 13;
+		private final LinearLayout layout = LinearLayout.vertical();
+		private final EditBox search;
+		private final PackList list;
+		private final LinearLayout buttons = LinearLayout.horizontal().spacing(6);
+
+		SavePacksTab() {
+			PackConverterScreen screen = PackConverterScreen.this;
+			String query = screen.search != null ? screen.search.getValue() : "";
+			this.search = new EditBox(screen.font, 200, 18, Component.translatable("packconverter.screen.search"));
+			this.search.setHint(Component.translatable("packconverter.screen.search").withStyle(ChatFormatting.DARK_GRAY));
+			this.search.setValue(query);
+			this.search.setResponder(text -> screen.refresh());
+			this.list = new PackList(screen.minecraft);
+			this.layout.defaultCellSetting().alignHorizontallyCenter();
+			this.layout.addChild(this.search, cell -> cell.paddingTop(LINE));
+			this.layout.addChild(this.list, cell -> cell.paddingTop(4));
+			this.layout.addChild(this.buttons, cell -> cell.paddingTop(LINE).paddingBottom(3));
+			screen.convertButton = this.buttons.addChild(Button.builder(Component.translatable("packconverter.screen.convert"), b -> screen.convertSelected())
+				.width(120).tooltip(Tooltip.create(Component.translatable("packconverter.screen.convert.tooltip"))).build());
+			screen.convertAllButton = this.buttons.addChild(Button.builder(Component.translatable("packconverter.screen.convert_all"), b -> screen.convertAll())
+				.width(120).tooltip(Tooltip.create(Component.translatable("packconverter.screen.convert_all.tooltip"))).build());
+			this.buttons.addChild(Button.builder(Component.translatable("packconverter.screen.open_export"), b -> screen.openExportFolder()).width(120).build());
+			screen.search = this.search;
+			screen.list = this.list;
+		}
+
+		@Override
+		public Component getTabTitle() {
+			return Component.translatable("packconverter.screen.tab");
+		}
+
+		@Override
+		public Component getTabExtraNarration() {
+			return Component.empty();
+		}
+
+		@Override
+		public void visitChildren(Consumer<AbstractWidget> children) {
+			this.layout.visitWidgets(children);
+		}
+
+		/** The list takes the height the rest leaves. */
+		@Override
+		public void doLayout(ScreenRectangle area) {
+			int rest = LINE + this.search.getHeight() + 4 + LINE + 20 + 3;
+			this.list.setSize(area.width(), Math.max(24, area.height() - rest));
+			this.layout.arrangeElements();
+			this.layout.setPosition(area.left(), area.top());
+			this.list.updateSizeAndPosition(this.list.getWidth(), this.list.getHeight(), this.list.getX(), this.list.getY());
+			PackConverterScreen.this.locationY = this.search.getY() - LINE + 3;
+			PackConverterScreen.this.statusY = this.buttons.getY() - LINE + 2;
+		}
 	}
 
 	/** The folder shown, or the search's results from every folder. */
@@ -161,10 +269,8 @@ public final class PackConverterScreen extends Screen {
 
 	private void showFolder(Path dir) {
 		this.folder = dir;
-		if (this.location != null) {
-			String rel = this.root.relativize(dir).toString().replace('\\', '/');
-			this.location.setMessage(Component.literal("resourcepacks/" + rel).withStyle(ChatFormatting.GRAY));
-		}
+		String rel = this.root.relativize(dir).toString().replace('\\', '/');
+		this.location = Component.literal("resourcepacks/" + rel).withStyle(ChatFormatting.GRAY);
 		List<Item> items = new ArrayList<>();
 		if (!dir.equals(this.root)) items.add(new Item(dir.getParent(), Kind.UP, ".."));
 		List<Path> children = new ArrayList<>();
@@ -189,7 +295,7 @@ public final class PackConverterScreen extends Screen {
 
 	/** Packs anywhere under resourcepacks whose path (folder and name) contains the query. */
 	private void showSearch(String query) {
-		if (this.location != null) this.location.setMessage(Component.translatable("packconverter.screen.search_all").withStyle(ChatFormatting.GRAY));
+		this.location = Component.translatable("packconverter.screen.search_all").withStyle(ChatFormatting.GRAY);
 		if (this.allPacks == null) this.allPacks = this.listAllPacks();
 		List<Item> items = new ArrayList<>();
 		for (Path p : this.allPacks) {
@@ -221,9 +327,19 @@ public final class PackConverterScreen extends Screen {
 		}
 	}
 
+	/** Lists the rows; picks made among them stay picked, the rest go. */
 	private void show(List<Item> items) {
 		this.releaseIcons();
-		if (this.list != null) this.list.show(items);
+		Set<Path> shown = new HashSet<>();
+		for (Item item : items) shown.add(item.path);
+		this.marked.retainAll(shown);
+		if (this.anchor != null && !shown.contains(this.anchor)) this.anchor = null;
+		if (this.list != null) {
+			this.list.show(items);
+			for (PackList.Row row : this.list.children()) {
+				if (row.item.kind != Kind.UP && row.item.path.equals(this.selectedPath)) this.list.select(row);
+			}
+		}
 		this.updateButtons();
 		// read every pack's format and icon in the background
 		for (Item item : items) {
@@ -236,17 +352,68 @@ public final class PackConverterScreen extends Screen {
 		this.icons.clear();
 	}
 
-	/** Selects the row of a pack shown, by file name (for tests and keyboard-less automation). */
-	public boolean select(String fileName) {
+	/**
+	 * A row clicked, or reached with the arrow keys: alone picks just that pack, with Ctrl (Cmd on a Mac) adds it or
+	 * takes it out, with Shift picks the packs from the row last clicked to it (added to the others with Ctrl too).
+	 * Folders are never picked.
+	 */
+	private void pick(PackList.Row row, boolean ctrl, boolean shift) {
+		if (this.list == null) return;
+		Item item = row.item;
+		this.selectedPath = item.kind == Kind.UP ? null : item.path;
+		if (shift && this.anchor != null) {
+			List<PackList.Row> rows = this.list.children();
+			int from = -1, to = rows.indexOf(row);
+			for (int i = 0; i < rows.size(); i++) if (rows.get(i).item.path.equals(this.anchor)) from = i;
+			if (from < 0) from = to;
+			if (!ctrl) this.marked.clear();
+			for (int i = Math.min(from, to); i <= Math.max(from, to); i++) {
+				if (rows.get(i).item.kind == Kind.PACK) this.marked.add(rows.get(i).item.path);
+			}
+		} else if (ctrl) {
+			if (item.kind == Kind.PACK && !this.marked.remove(item.path)) this.marked.add(item.path);
+			this.anchor = item.path;
+		} else {
+			this.marked.clear();
+			if (item.kind == Kind.PACK) this.marked.add(item.path);
+			this.anchor = item.path;
+		}
+		this.updateButtons();
+	}
+
+	private void click(PackList.Row row, boolean ctrl, boolean shift) {
+		if (this.list == null) return;
+		this.list.select(row);
+		this.pick(row, ctrl, shift);
+	}
+
+	/** Every pack shown picked (Ctrl+A). */
+	private void markAll() {
+		if (this.list == null) return;
+		for (PackList.Row row : this.list.children()) if (row.item.kind == Kind.PACK) this.marked.add(row.item.path);
+		this.updateButtons();
+	}
+
+	/** Clicks the row of a pack shown, by file name, as {@link #click} (for tests and keyboard-less automation). */
+	public boolean clickPack(String fileName, boolean ctrl, boolean shift) {
 		if (this.list == null) return false;
 		for (PackList.Row row : this.list.children()) {
 			if (row.item.kind != Kind.UP && row.item.path.getFileName().toString().equals(fileName)) {
-				this.list.setSelected(row);
-				this.updateButtons();
+				this.click(row, ctrl, shift);
 				return true;
 			}
 		}
 		return false;
+	}
+
+	/** Selects the row of a pack shown, by file name, as a plain click does. */
+	public boolean select(String fileName) {
+		return this.clickPack(fileName, false, false);
+	}
+
+	/** How many packs are picked. */
+	public int markedCount() {
+		return this.marked.size();
 	}
 
 	/** True while nothing is being saved and every pack's details are read. */
@@ -256,9 +423,18 @@ public final class PackConverterScreen extends Screen {
 		return true;
 	}
 
+	/** What "Convert and save" saves: the old packs picked, in the list's order. */
+	private List<Item> targets() {
+		if (this.list == null) return List.of();
+		return this.list.children().stream().map(row -> row.item).filter(item -> this.marked.contains(item.path) && item.convertible()).toList();
+	}
+
 	private void updateButtons() {
-		Item selected = this.list != null ? this.list.selectedItem() : null;
-		if (this.convertButton != null) this.convertButton.active = !this.busy && selected != null && selected.convertible();
+		if (this.convertButton != null) {
+			int n = this.targets().size();
+			this.convertButton.active = !this.busy && n > 0;
+			this.convertButton.setMessage(n > 1 ? Component.translatable("packconverter.screen.convert_count", n) : Component.translatable("packconverter.screen.convert"));
+		}
 		if (this.convertAllButton != null) {
 			this.convertAllButton.setMessage(Component.translatable(this.batch ? "packconverter.screen.stop" : "packconverter.screen.convert_all"));
 			this.convertAllButton.active = this.batch || !this.busy && this.list != null
@@ -403,10 +579,16 @@ public final class PackConverterScreen extends Screen {
 		Minecraft.getInstance().gui.getChat().addMessage(Component.translatable("packconverter.chat.saved_all", count, link));
 	}
 
+	/** "Convert and save": the pack selected, or every pack picked (as "Convert folder" saves several). */
 	private void convertSelected() {
-		Item item = this.list != null ? this.list.selectedItem() : null;
-		if (item == null || !item.convertible() || this.busy) return;
-		this.askNetherite(List.of(item), options -> this.convertSelected(item, options));
+		List<Item> packs = this.targets();
+		if (packs.isEmpty() || this.busy) return;
+		if (packs.size() > 1) {
+			this.askNetherite(packs, options -> this.convertAll(packs, options));
+			return;
+		}
+		Item item = packs.getFirst();
+		this.askNetherite(packs, options -> this.convertSelected(item, options));
 	}
 
 	private void convertSelected(Item item, Options options) {
@@ -443,7 +625,6 @@ public final class PackConverterScreen extends Screen {
 				// the export may have created a folder here (resourcepacks/converted by default)
 				this.allPacks = null;
 				this.refresh();
-				this.select(name);
 			});
 		});
 	}
@@ -528,14 +709,37 @@ public final class PackConverterScreen extends Screen {
 			this.setScrollAmount(0);
 		}
 
-		@Nullable Item selectedItem() {
-			Row row = this.getSelected();
-			return row == null ? null : row.item;
+		/** Selects a row without changing which packs are picked (a click picks them itself). */
+		void select(Row row) {
+			super.setSelected(row);
+		}
+
+		/** The arrow keys pick the row they reach, a range with Shift. */
+		@Override
+		public void setSelected(@Nullable Row row) {
+			boolean moved = row != null && row != this.getSelected();
+			super.setSelected(row);
+			if (moved) PackConverterScreen.this.pick(row, false, PackConverterScreen.this.minecraft.hasShiftDown());
 		}
 
 		@Override
 		public int getRowWidth() {
 			return Math.min(360, PackConverterScreen.this.width - 40);
+		}
+
+		/**
+		 * Every picked pack outlined as vanilla's selection (white while the list has focus), and a pack taken out with
+		 * Ctrl only dimly, so it doesn't look picked.
+		 */
+		@Override
+		protected void renderItem(GuiGraphics graphics, int mouseX, int mouseY, float a, Row entry) {
+			boolean selected = this.getSelected() == entry;
+			if (PackConverterScreen.this.marked.contains(entry.item.path) || selected && entry.item.kind != Kind.PACK) {
+				this.renderSelection(graphics, entry, this.isFocused() ? 0xFFFFFFFF : 0xFF808080);
+			} else if (selected) {
+				this.renderSelection(graphics, entry, 0xFF404040);
+			}
+			entry.renderContent(graphics, mouseX, mouseY, Objects.equals(this.getHovered(), entry), a);
 		}
 
 		final class Row extends ObjectSelectionList.Entry<Row> {
@@ -589,12 +793,11 @@ public final class PackConverterScreen extends Screen {
 
 			@Override
 			public boolean mouseClicked(MouseButtonEvent event, boolean doubleClick) {
-				PackList.this.setSelected(this);
+				PackConverterScreen.this.click(this, event.hasControlDownWithQuirk(), event.hasShiftDown());
 				if (doubleClick && this.item.kind != Kind.PACK) {
 					if (PackConverterScreen.this.search != null) PackConverterScreen.this.search.setValue("");
 					PackConverterScreen.this.showFolder(this.item.path);
 				}
-				PackConverterScreen.this.updateButtons();
 				return true;
 			}
 		}
