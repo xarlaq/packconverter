@@ -55,6 +55,8 @@ public final class PackConverterConfig {
 	public String exportFolder = "resourcepacks/converted";
 	/** Packs starred in the resource pack screen (pack ids): listed first. */
 	public List<String> favouritePacks = new ArrayList<>();
+	/** Packs pinned in the Selected list (pack ids): the random pack leaves them on. */
+	public List<String> pinnedPacks = new ArrayList<>();
 
 	public static synchronized PackConverterConfig get() {
 		if (instance == null) instance = load();
@@ -113,6 +115,7 @@ public final class PackConverterConfig {
 				PackConverterConfig config = GSON.fromJson(Files.readString(file, StandardCharsets.UTF_8), PackConverterConfig.class);
 				if (config != null) {
 					if (config.favouritePacks == null) config.favouritePacks = new ArrayList<>();
+					if (config.pinnedPacks == null) config.pinnedPacks = new ArrayList<>();
 					return config;
 				}
 			} catch (IOException | RuntimeException e) {

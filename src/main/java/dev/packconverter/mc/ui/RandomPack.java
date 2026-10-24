@@ -5,6 +5,7 @@ import dev.packconverter.PackConverterConfig;
 import dev.packconverter.mc.LegacyPacks;
 import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.PackFolders;
+import dev.packconverter.mc.folders.Pins;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keymapping.v1.KeyMappingHelper;
@@ -32,11 +33,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Random;
+import java.util.function.Predicate;
 
 /**
- * "Random pack": swaps the packs you use (the ones from the resourcepacks folder; built-in ones stay) for one picked
- * at random, and applies it. The die button on the resource pack screen picks from the list shown (the folder open,
- * or the search), the key (unbound at first; set in Controls, or by right-clicking the button) from every pack.
+ * "Random pack": swaps the packs you use (the ones from the resourcepacks folder; built-in and pinned ones stay, see
+ * {@link Pins}) for one picked at random, and applies it. The pick goes where the packs it replaces were, so pinned
+ * packs above them stay above it. The die button on the resource pack screen picks from the list shown (the folder
+ * open, or the search), the key (unbound at first; set in Controls, or by right-clicking the button) from every pack.
  */
 public final class RandomPack {
 	public static final KeyMapping.Category CATEGORY = KeyMapping.Category.register(Identifier.fromNamespaceAndPath("packconverter", "main"));
@@ -150,10 +153,19 @@ public final class RandomPack {
 			return;
 		}
 		PackSelectionModel.Entry pick = pool.get(RANDOM.nextInt(pool.size()));
-		for (PackSelectionModel.Entry e : model.getSelected().toList()) {
-			if (fromFolder(e.getId()) && e.canUnselect()) e.unselect();
+		List<PackSelectionModel.Entry> selected = model.getSelected().toList();
+		Predicate<PackSelectionModel.Entry> stays = e -> !fromFolder(e.getId()) || !e.canUnselect() || pinned(e.getId());
+		int slot = Pins.slot(selected, stays, e -> pinned(e.getId()));
+		for (PackSelectionModel.Entry e : selected) {
+			if (!stays.test(e)) e.unselect();
 		}
 		pick.select();
+		// it went in at the top: down to its place (as a Selected entry: the one picked moves in Available), and the
+		// repository told (moving doesn't)
+		PackSelectionModel.Entry placed = model.getSelected().filter(e -> e.getId().equals(pick.getId())).findFirst().orElse(pick);
+		for (int i = 0; i < slot && placed.canMoveDown(); i++) placed.moveDown();
+		List<String> order = new ArrayList<>(model.getSelected().map(PackSelectionModel.Entry::getId).toList());
+		minecraft.getResourcePackRepository().setSelected(order.reversed());
 		// the model has set the repository's selection: apply it with the screen still open, once the pack is converted
 		// (if "Done" comes first, that applies it)
 		preparing = true;
@@ -196,14 +208,22 @@ public final class RandomPack {
 		}));
 	}
 
-	/** The packs from the folder swapped for this one, applied. */
+	/** The packs from the folder (not pinned) swapped for this one, in their place, applied. */
 	private static void switchTo(Minecraft minecraft, Pack pick) {
 		PackRepository repository = minecraft.getResourcePackRepository();
-		List<Pack> selected = new ArrayList<>(repository.getSelectedPacks());
-		selected.removeIf(p -> fromFolder(p.getId()) && !p.isRequired());
-		pick.getDefaultPosition().insert(selected, pick, Pack::selectionConfig, false);
-		repository.setSelected(selected.stream().map(Pack::getId).toList());
+		List<Pack> topDown = new ArrayList<>(repository.getSelectedPacks()).reversed();
+		Predicate<Pack> stays = p -> !fromFolder(p.getId()) || p.isRequired() || pinned(p.getId());
+		int slot = Pins.slot(topDown, stays, p -> pinned(p.getId()));
+		List<Pack> kept = new ArrayList<>(topDown.stream().filter(stays).toList());
+		while (slot < kept.size() && kept.get(slot).isFixedPosition() && kept.get(slot).getDefaultPosition() == Pack.Position.TOP) slot++;
+		kept.add(Math.min(slot, kept.size()), pick);
+		repository.setSelected(kept.reversed().stream().map(Pack::getId).toList());
 		minecraft.options.updateResourcePacks(repository);
+	}
+
+	/** Pinned, with pins shown (pins set elsewhere, as on Lunar Client, couldn't be taken off). */
+	private static boolean pinned(String packId) {
+		return Pins.enabled() && Pins.is(packId);
 	}
 
 	/** A pack the setting lets it pick: any, or only favourites. */

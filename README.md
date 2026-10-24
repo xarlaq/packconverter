@@ -20,7 +20,7 @@ Your original packs stay untouched, and packs made for 26.3 are never converted.
 | **Pack previews** | Hover a pack to preview its HUD, items, blocks and armor on a 3D player before turning it on. |
 | **Pack folders** | Sort packs into folders in the Resource Packs screen; search looks through all of them, and each list shows how many packs it holds. |
 | **Favourites** | Star a pack to keep it at the top of the list, wherever its folder is. |
-| **Random pack** | A die button next to Done swaps in a random pack, from all packs or only favourites. Right-click it to bind a key and roll packs while playing. |
+| **Random pack** | A die button next to Done swaps in a random pack, from all packs or only favourites; right-click it to bind a key and roll packs while playing. Packs you pin in the Selected list stay on (an overlay, say). |
 | **Netherite from diamond** | Packs from before netherite get it, recoloured from their own diamond items, in any colour. |
 | **Copper from iron** | Packs from before copper tools and armor get them, recoloured from their own iron items, in any colour. |
 | **KB sword** | Diamond swords with Knockback II or more stand out: the pack's own diamond sword, recoloured (red by default). Saved packs do it without the mod too. |
@@ -66,7 +66,7 @@ In Pack Converter, the tabs after **Save packs** (its button is on the title scr
 | **Favourite packs** | on | The star on each pack. |
 | **Pack previews** | on | The preview when hovering a pack. |
 | **Previews show** | All | Every material in turn (wood to netherite), or just one. |
-| **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
+| **Random pack** | All packs | The die button, its key and the pins: from all packs, only favourites, or off. |
 
 **Other**
 
