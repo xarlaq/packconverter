@@ -6,6 +6,7 @@
 - Pack Converter is one screen in tabs: Save packs, then the settings in three (Conversion, Resource packs, Other). Mod Menu opens it on the settings.
 - Save packs: pick several packs with Ctrl+click (one more, or one less), Shift+click (a range) or Ctrl+A (every pack shown), and "Convert and save" saves them all.
 - Save packs reads packs zipped with their folder (pack.mcmeta one folder down, as many downloads are), which Minecraft doesn't list: they convert, and the saved copy is a normal pack.
+- Pinned packs: a pin on each pack in the Selected list (shown when you hover it). The random pack leaves pinned packs on and in their place, and puts its pick where the pack it replaces was.
 
 ## 1.5.1 (Minecraft 1.21.11)
 

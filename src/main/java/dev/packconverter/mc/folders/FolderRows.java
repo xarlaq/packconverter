@@ -6,7 +6,7 @@ import org.jspecify.annotations.Nullable;
 import java.util.List;
 import java.util.function.Consumer;
 
-/** On TransferableSelectionList (the pack screen's lists): folder rows, favourite stars, the screen. */
+/** On TransferableSelectionList (the pack screen's lists): folder rows, favourite stars, pins, the screen. */
 public interface FolderRows {
 	/** Set on the Available list before it is filled: the folder shown (null: none, as when searching) and its rows. */
 	void packconverter$showFolder(@Nullable String folder, List<FolderEntry.Row> rows, Consumer<String> open);
@@ -15,6 +15,11 @@ public interface FolderRows {
 	void packconverter$setFavourites(boolean stars, boolean first);
 
 	boolean packconverter$stars();
+
+	/** Pins on this list's pack rows ({@link Pins}: the Selected list, with the random pack on). */
+	void packconverter$setPins(boolean pins);
+
+	boolean packconverter$pins();
 
 	PackSelectionScreen packconverter$screen();
 }

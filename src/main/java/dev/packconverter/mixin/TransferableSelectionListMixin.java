@@ -48,6 +48,8 @@ public abstract class TransferableSelectionListMixin extends ObjectSelectionList
 	private boolean packconverter$stars;
 	@Unique
 	private boolean packconverter$favouritesFirst;
+	@Unique
+	private boolean packconverter$pins;
 
 	private TransferableSelectionListMixin(Minecraft minecraft, int width, int height, int y, int itemHeight) {
 		super(minecraft, width, height, y, itemHeight);
@@ -69,6 +71,16 @@ public abstract class TransferableSelectionListMixin extends ObjectSelectionList
 	@Override
 	public boolean packconverter$stars() {
 		return this.packconverter$stars;
+	}
+
+	@Override
+	public void packconverter$setPins(boolean pins) {
+		this.packconverter$pins = pins;
+	}
+
+	@Override
+	public boolean packconverter$pins() {
+		return this.packconverter$pins;
 	}
 
 	@Override

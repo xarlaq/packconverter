@@ -2,6 +2,7 @@ package dev.packconverter.mc.preview;
 
 import dev.packconverter.PackConverterConfig;
 import dev.packconverter.mc.LegacyPacks;
+import dev.packconverter.mc.folders.FolderRows;
 import dev.packconverter.mixin.GuiGraphicsInvoker;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
@@ -40,6 +41,10 @@ public final class PackTooltip {
 			for (TransferableSelectionList.Entry row : list.children()) {
 				if (!(row instanceof TransferableSelectionList.PackEntry) || !row.isMouseOver(mouseX, mouseY)) continue;
 				if (mouseX < row.getContentX() + 32) return;
+				// the star and the pin at the end of the name line have their own
+				FolderRows rows = (FolderRows) list;
+				int icons = (rows.packconverter$stars() ? 1 : 0) + (rows.packconverter$pins() ? 1 : 0);
+				if (icons > 0 && mouseX >= row.getContentRight() - icons * 11 && mouseY < row.getContentY() + 10) return;
 				String id = row.getPackId();
 				Stream.concat(model.getSelected(), model.getUnselected()).filter(e -> e.getId().equals(id)).findFirst()
 					.ifPresent(pack -> show(graphics, pack, mouseX, mouseY));

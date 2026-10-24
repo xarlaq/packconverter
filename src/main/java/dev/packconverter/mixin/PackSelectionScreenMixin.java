@@ -8,6 +8,7 @@ import dev.packconverter.mc.folders.Favourites;
 import dev.packconverter.mc.folders.FolderEntry;
 import dev.packconverter.mc.folders.FolderRows;
 import dev.packconverter.mc.folders.PackFolders;
+import dev.packconverter.mc.folders.Pins;
 import dev.packconverter.mc.folders.ResourcePackScreen;
 import dev.packconverter.mc.preview.PackTooltip;
 import dev.packconverter.mc.ui.MenuButtons;
@@ -44,8 +45,9 @@ import java.util.stream.Stream;
 /**
  * Folders in the resource pack screen ({@link PackFolders}): the Available list shows the current folder's packs
  * under rows for its subfolders (and one going back); a search looks through every folder. "Open Pack Folder" and
- * packs dropped on the screen use the folder shown. Favourite packs go first ({@link Favourites}). The Pack Converter
- * and random pack buttons sit between "Open Pack Folder" and "Done". Not for data packs (same screen, other directory).
+ * packs dropped on the screen use the folder shown. Favourite packs go first ({@link Favourites}); packs in use can be
+ * pinned ({@link Pins}). The Pack Converter and random pack buttons sit between "Open Pack Folder" and "Done". Not for
+ * data packs (same screen, other directory).
  */
 @Mixin(PackSelectionScreen.class)
 public abstract class PackSelectionScreenMixin extends Screen implements ResourcePackScreen {
@@ -156,6 +158,7 @@ public abstract class PackSelectionScreenMixin extends Screen implements Resourc
 		FolderRows rows = (FolderRows) list;
 		boolean favourites = this.packconverter$favourites();
 		rows.packconverter$setFavourites(favourites, favourites && list == this.availablePackList);
+		rows.packconverter$setPins(Pins.enabled() && this.packconverter$isResourcePacks() && list == this.selectedPackList);
 		if (list != this.availablePackList || !this.packconverter$folders()) {
 			original.call(list, entries, transferred);
 			return;
