@@ -12,11 +12,16 @@ import java.util.List;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
-/** Pack in a zip file. Thread-safe for reads (ZipFile is). */
+/**
+ * Pack in a zip file. Thread-safe for reads (ZipFile is). A pack zipped with its folder (pack.mcmeta one folder down,
+ * as many downloads are) is read from that folder: Minecraft doesn't list such zips, but they convert and save.
+ */
 public final class ZipPackSource implements PackSource {
 	private final Path path;
 	/** Opened again if used after close(), as vanilla's zip packs do (some clients, Lunar, read a pack after closing it). */
 	private ZipFile zip;
+	/** Where the pack starts in the zip: "" or its folder ("Pack/"). */
+	private final String root;
 	private final List<String> paths;
 
 	public ZipPackSource(Path path) throws IOException {
@@ -27,7 +32,23 @@ public final class ZipPackSource implements PackSource {
 			ZipEntry entry = entries.nextElement();
 			if (!entry.isDirectory()) list.add(entry.getName());
 		}
-		this.paths = Collections.unmodifiableList(list);
+		this.root = root(list);
+		this.paths = this.root.isEmpty() ? Collections.unmodifiableList(list)
+			: list.stream().filter(name -> name.startsWith(this.root)).map(name -> name.substring(this.root.length())).toList();
+	}
+
+	/** "" when pack.mcmeta is at the top, else the one folder right below the top that has it (none if several do). */
+	static String root(List<String> names) {
+		String found = null;
+		for (String name : names) {
+			String n = name.replace('\\', '/');
+			if (n.equals("pack.mcmeta") || n.equals("/pack.mcmeta")) return "";
+			if (n.endsWith("/pack.mcmeta") && n.indexOf('/') == n.length() - "/pack.mcmeta".length() && !n.startsWith("__MACOSX/")) {
+				if (found != null) return "";
+				found = name.substring(0, name.length() - "pack.mcmeta".length());
+			}
+		}
+		return found == null ? "" : found;
 	}
 
 	@Override
@@ -46,7 +67,7 @@ public final class ZipPackSource implements PackSource {
 	}
 
 	private InputStream open(ZipFile zip, String name) throws IOException {
-		ZipEntry entry = zip.getEntry(name);
+		ZipEntry entry = zip.getEntry(this.root + name);
 		if (entry == null) throw new java.io.FileNotFoundException(name + " in " + path);
 		return zip.getInputStream(entry);
 	}
