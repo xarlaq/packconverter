@@ -3,6 +3,7 @@
 ## Unreleased
 
 - Copper from iron: old packs without copper tools and armor get them, recoloured from their own iron items (vanilla copper's colour by default, any colour in the settings, with a preview), the way netherite is made from diamond.
+- The settings are in three tabs: Conversion, Pack screen and Other.
 
 ## 1.5.1 (Minecraft 1.21.11)
 

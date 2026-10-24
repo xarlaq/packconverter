@@ -45,21 +45,34 @@ Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
 ## Settings
 
-In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title screen, in game beside Resource Packs in Options, and on the Resource Packs screen).
+In **Mod Menu**, or **Settings** in Pack Converter (its button is on the title screen, in game beside Resource Packs in Options, and on the Resource Packs screen). Three tabs:
+
+**Conversion**
 
 | Option | Default | What it does |
 | --- | --- | --- |
 | **Convert old packs** | on | Converts old packs when you turn them on. |
-| **Pack folders** | on | Folders in the Resource Packs screen. |
-| **Pack previews** | on | The preview when hovering a pack. |
-| **Previews show** | All | Every material in turn (wood to netherite), or just one. |
+| **Conversion details** | off | A pack's tooltip also lists what was converted. |
 | **Make netherite** | on | Netherite from diamond, in the colour of the swatch next to it. |
 | **Make copper** | on | Copper from iron, in the colour of the swatch next to it. |
 | **KB sword** | on | The knockback sword, in the colour of the swatch next to it. |
+
+**Pack screen**
+
+| Option | Default | What it does |
+| --- | --- | --- |
+| **Pack folders** | on | Folders in the Resource Packs screen. |
+| **Favourite packs** | on | The star on each pack. |
+| **Pack previews** | on | The preview when hovering a pack. |
+| **Previews show** | All | Every material in turn (wood to netherite), or just one. |
+| **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
+
+**Other**
+
+| Option | Default | What it does |
+| --- | --- | --- |
 | **Fast pack switching** | on | Keeps the game on screen while packs load, with no long freeze when they go in. |
 | **Hide loading bar** | on | No progress bar while packs switch (RRLS's too). |
-| **Favourite packs** | on | The star on each pack. |
-| **Random pack** | All packs | The die button and its key: from all packs, only favourites, or off. |
 | **Cache limit** | 1 GB | Space converted packs may use; the oldest go first. |
 | **Export folder** | `resourcepacks/converted` | Where "Convert and save" puts converted packs. |
 
