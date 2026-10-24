@@ -5,6 +5,7 @@
 - Copper from iron: old packs without copper tools and armor get them, recoloured from their own iron items (vanilla copper's colour by default, any colour in the settings, with a preview), the way netherite is made from diamond.
 - Pack Converter is one screen in tabs: Save packs, then the settings in three (Conversion, Resource packs, Other). Mod Menu opens it on the settings.
 - Save packs: pick several packs with Ctrl+click (one more, or one less), Shift+click (a range) or Ctrl+A (every pack shown), and "Convert and save" saves them all.
+- Save packs reads packs zipped with their folder (pack.mcmeta one folder down, as many downloads are), which Minecraft doesn't list: they convert, and the saved copy is a normal pack.
 
 ## 1.5.1 (Minecraft 1.21.11)
 

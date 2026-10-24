@@ -36,6 +36,7 @@ Your original packs stay untouched, and packs made for 1.21.11 are never convert
 - Particles, paintings, effect icons, compass and clock, enchantment glint, menu background
 - Custom model data, custom bows, `.lang` files and OptiFine (`mcpatcher/`) folders
 - `pack.mcmeta` files newer versions reject, like descriptions with `\!` or line breaks (fine up to 1.8): the pack shows up and converts
+- Packs zipped with their folder (`pack.mcmeta` one folder down), which Minecraft doesn't list: "Convert and save" makes normal packs of them
 
 Nothing is added from elsewhere: what an old pack doesn't have stays vanilla.
 
